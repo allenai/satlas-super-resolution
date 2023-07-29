@@ -1,0 +1,7 @@
+numpy
+scikit-image
+torch
+torchvision
+Pillow
+basicsr @ git+https://github.com/piperwolters/BasicSR
+
