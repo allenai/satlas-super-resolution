@@ -3,5 +3,5 @@ scikit-image
 torch
 torchvision
 Pillow
+opencv_python
 basicsr @ git+https://github.com/piperwolters/BasicSR
-

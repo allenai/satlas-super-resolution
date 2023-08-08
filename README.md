@@ -1,7 +1,13 @@
 # Satlas Super Resolution
 
-This repository contains the training and inference code for the AI-generated super resolution data found at 
-https://satlas.allen.ai
+[Satlas Website](https://satlas.allen.ai) | [Github](https://github.com/allenai/satlas-super-resolution)
+
+Satlas aims to provide open AI-generated geospatial data that is highly accurate, available globally, 
+and updated on a frequent (monthly) basis. One of the data applications in Satlas is globally generated 
+**Super-Resolution** imagery for 2023. 
+
+This repository contains the training and inference code for the AI-generated Super-Resolution data found at 
+https://satlas.allen.ai.
 
 <p align="center">
    <img src="figures/kenya_sentinel2.gif" alt="animated" width=300 height=300 />
@@ -24,7 +30,7 @@ that overlap spatially and temporally [within 3 months] with a NAIP image. The i
    <img src="figures/image_pair.svg" />
 </p>
 
-The images adhere to the same Web-Mercator tile system as in [SatlasPretrain](https://github.com/allenai/satlas/tree/main). 
+The images adhere to the same Web-Mercator tile system as in [SatlasPretrain](https://github.com/allenai/satlas/blob/main/SatlasPretrain.md). 
 
 There are two training sets: the full set, consisting of ~44million pairs and the urban set, with ~1.1 million pairs from locations 
 within a 5km radius of cities in the USA with a population >= 50k. 
@@ -44,12 +50,12 @@ For each NAIP image, there is a time series of corresponding 32x32px Sentinel-2 
 shape, `[number_sentinel2_images * 32, 32, 3]`. Before running this data through the models, the data is reshaped to
 `[number_sentinel2_images, 32, 32, 3]`. 
 
-In each set, there is a 'sentinel2' folder containing these time series in the format: `sentinel2/1234_5678/X_Y.png` where 
+In each set, there is a `sentinel2` folder containing these time series in the format: `sentinel2/1234_5678/X_Y.png` where 
 `X,Y` is the column and row position of the NAIP image within the current Sentinel-2 image.
 
 ## Model
 Our model is an adaptation of [ESRGAN](https://arxiv.org/abs/1809.00219), with changes that allow the input to be a time
-series of Sentinel-2 images. The code heavily leverages the [BasicSR codebase](https://github.com/XPixelGroup/BasicSR). 
+series of Sentinel-2 images. All models are trained to upsample by a factor of 4. 
 
 <p align="center">
    <img src="figures/esrgan_generator.svg" />
@@ -69,8 +75,8 @@ is not wanted.
 To run inference on the provided validation or test sets, run the following command
 (`--data_dir` should point to your downloaded data):
 
-`python ssr/infer.py --data_dir super_resolution_2023-07-24/{val,test}_set/sentinel2/ 
---weights_path PATH_TO_WEIGHTS --n_s2_images NUMBER_S2_IMAGES --save_path PATH_TO_SAVE_OUTPUTS`
+`python ssr/infer.py --data_dir super_resolution_2023-07-24/{val,test}_set/sentinel2/ --weights_path PATH_TO_WEIGHTS 
+--n_s2_images NUMBER_S2_IMAGES --save_path PATH_TO_SAVE_OUTPUTS`
 
 When running inference on an entire Sentinel-2 tile (consisting of a 16x16 grid of chunks), there is a `--stitch` flag that will
 stitch the individual chunks together into one large image. 
@@ -106,7 +112,9 @@ This is more common in places that look vastly different from the USA, such as t
 
 ## Acknowledgements
 Thanks to these codebases for foundational Super-Resolution code and inspiration:
+
 [BasicSR](https://github.com/XPixelGroup/BasicSR/tree/master})
+
 [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN/tree/master)
 
 ## Contact
