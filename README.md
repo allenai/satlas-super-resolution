@@ -64,7 +64,7 @@ series of Sentinel-2 images. All models are trained to upsample by a factor of 4
 ## Training
 To train a model on this dataset, run the following command, with the desired configuration file:
 
-`python ssr/train.py -opt ssr/options/urban_set_6images.yml` 
+`python -m ssr.train.py -opt ssr/options/urban_set_6images.yml` 
 
 Make sure the configuration file specifies correct paths to your downloaded data.
 
@@ -75,7 +75,7 @@ is not wanted.
 To run inference on the provided validation or test sets, run the following command
 (`--data_dir` should point to your downloaded data):
 
-`python ssr/infer.py --data_dir super_resolution_2023-07-24/{val,test}_set/sentinel2/ --weights_path PATH_TO_WEIGHTS 
+`python -m ssr.infer.py --data_dir satlas-super-resolution-data/{val,test}_set/sentinel2/ --weights_path PATH_TO_WEIGHTS 
 --n_s2_images NUMBER_S2_IMAGES --save_path PATH_TO_SAVE_OUTPUTS`
 
 When running inference on an entire Sentinel-2 tile (consisting of a 16x16 grid of chunks), there is a `--stitch` flag that will
@@ -83,7 +83,7 @@ stitch the individual chunks together into one large image.
 
 Try this feature out on the test set:
 
-`python ssr/infer.py --data_dir super_resolution_2023-07-24/test_set/sentinel2/ --stitch`
+`python -m ssr.infer.py --data_dir satlas-super-resolution-data/test_set/sentinel2/ --stitch`
 
 <p align="center">
    <img src="figures/stitch_example.svg" height=300 />
