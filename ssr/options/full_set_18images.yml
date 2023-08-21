@@ -19,7 +19,7 @@ datasets:
     sentinel2_path: super_resolution_2023-07-24/train_full_set/sentinel2
     naip_path: super_resolution_2023-07-24/train_full_set/naip
 
-    tile_weights: super_resolution_2023-07-24/train_tile_weights/full_set_weights.json
+    tile_weights: super_resolution_2023-07-24/train_tile_weights/full_dataset_weights.json
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
