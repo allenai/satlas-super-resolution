@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_full_set_8images_satlas-pretrained-32x32
+name: esrgan_full_set_8images_old_naip
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -18,6 +18,7 @@ datasets:
 
     sentinel2_path: /data/piperw/super-res/ssr-data/train_urban_set/sentinel2
     naip_path: /data/piperw/super-res/ssr-data/train_urban_set/naip
+    old_naip_path: /data/piperw/data/old-naip
 
     tile_weights: /data/piperw/super-res/ssr-data/train_tile_weights/urban_set_weights.json
 
@@ -58,7 +59,7 @@ network_g:
 
 network_d:
   type: SSR_UNetDiscriminatorSN
-  num_in_ch: 3
+  num_in_ch: 6  # real/fake input + old naip image * 3 channels (RGB)
   num_feat: 64
   skip_connection: True
 
@@ -66,6 +67,7 @@ network_d:
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
   #pretrain_network_g: experiments/esrgan_full_set_12images/models/net_g_175000.pth 
+  #pretrain_network_g: /data/piperw/super-res/satlas-super-resolution/satlas_rrdbnet_last.pth 
   param_key_g: params
   strict_load_g: false
   #pretrain_network_d: experiments/esrgan_full_set_12images/models/net_d_175000.pth

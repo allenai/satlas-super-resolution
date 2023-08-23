@@ -30,6 +30,10 @@ class SSRESRGANModel(SRGANModel):
             self.gt = data['gt'].to(self.device)
             self.gt_usm = self.usm_sharpener(self.gt)
 
+        self.old_naip = None
+        if 'old_naip' in data:
+            self.old_naip = data['old_naip'].to(self.device)
+
     def optimize_parameters(self, current_iter):
         # usm sharpening
         l1_gt = self.gt_usm
@@ -66,8 +70,14 @@ class SSRESRGANModel(SRGANModel):
                 if l_g_style is not None:
                     l_g_total += l_g_style
                     loss_dict['l_g_style'] = l_g_style
-            # gan loss
-            fake_g_pred = self.net_d(self.output)
+            
+            # # If old naip was provided, stack it onto the channel dimension of discriminator input.
+            if self.old_naip is not None:
+                output_copy = torch.cat((self.output, self.old_naip), dim=1)
+                fake_g_pred = self.net_d(output_copy)
+            else:
+                # gan loss
+                fake_g_pred = self.net_d(self.output)
             l_g_gan = self.cri_gan(fake_g_pred, True, is_disc=False)
             l_g_total += l_g_gan
             loss_dict['l_g_gan'] = l_g_gan
@@ -78,6 +88,11 @@ class SSRESRGANModel(SRGANModel):
         # optimize net_d
         for p in self.net_d.parameters():
             p.requires_grad = True
+
+        # If old naip was provided, stack it onto the channel dimension of discriminator input.
+        if self.old_naip is not None:
+            gan_gt = torch.cat((gan_gt, self.old_naip), dim=1)
+            self.output = torch.cat((self.output, self.old_naip), dim=1)
 
         self.optimizer_d.zero_grad()
         # real

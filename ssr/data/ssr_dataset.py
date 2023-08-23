@@ -41,6 +41,8 @@ class SSRDataset(data.Dataset):
             n_sentinel2_images (int): Number of Sentinel-2 images to use as input to model.
             scale (int): Upsample amount, only 4x is supported currently.
             phase (str): 'train' or 'val'.
+            old_naip_path (str): Data path for old NAIP images to feed to discriminator
+                                (if nothing is provided, don't use this feature).
     """
 
     def __init__(self, opt):
@@ -50,6 +52,18 @@ class SSRDataset(data.Dataset):
         self.split = opt['phase']
         self.n_s2_images = int(opt['n_s2_images'])
         self.scale = int(opt['scale'])
+
+        self.old_naip_path = opt['old_naip_path'] if 'old_naip_path' in opt else None
+
+        # If a path to older NAIP imagery is provided, build dictionary of each chip:path to png.
+        if self.old_naip_path is not None:
+            old_naip_tiles = {}
+            for old_n in glob.glob(self.old_naip_path + '/**/*.png', recursive=True):
+                old_tile = old_n.split('/')[-1][:-4]
+
+                if not old_tile in old_naip_tiles:
+                    old_naip_tiles[old_tile] = []
+                old_naip_tiles[old_tile].append(old_n)
 
         # Paths to Sentinel-2 and NAIP imagery.
         self.s2_path = opt['sentinel2_path']
@@ -67,13 +81,23 @@ class SSRDataset(data.Dataset):
             chip = split_path[-1][:-4]
             tile = int(chip.split('_')[0]) // 16, int(chip.split('_')[1]) // 16
 
+            # If old_naip_path is specified, grab an old naip chip for the current datapoint.
+            if self.old_naip_path is not None:
+                if len(old_naip_tiles[chip]) < 1:
+                    old_chip = chip # NOTE: this should only be 1 lil chip where this fails, to fix later
+
+                old_chip = old_naip_tiles[chip][0]
+
             # Now compute the corresponding Sentinel-2 tiles.
             s2_left_corner = tile[0] * 16, tile[1] * 16
             diffs = int(chip.split('_')[0]) - s2_left_corner[0], int(chip.split('_')[1]) - s2_left_corner[1]
 
             s2_path = os.path.join(self.s2_path, str(tile[0])+'_'+str(tile[1]), str(diffs[1])+'_'+str(diffs[0])+'.png')
 
-            self.datapoints.append([n, s2_path])
+            if self.old_naip_path:
+                self.datapoints.append([n, s2_path, old_chip])
+            else:
+                self.datapoints.append([n, s2_path])
 
         self.data_len = len(self.datapoints)
         print("Number of datapoints for split ", self.split, ": ", self.data_len)
@@ -108,7 +132,11 @@ class SSRDataset(data.Dataset):
                 index = 0
 
             datapoint = self.datapoints[index]
-            naip_path, s2_path = datapoint[0], datapoint[1]
+
+            if self.old_naip_path:
+                naip_path, s2_path, old_naip_path = datapoint[0], datapoint[1], datapoint[2]
+            else:
+                naip_path, s2_path = datapoint[0], datapoint[1]
 
             # Load the 512x512 NAIP chip.
             naip_chip = skimage.io.imread(naip_path)
@@ -152,7 +180,13 @@ class SSRDataset(data.Dataset):
 
             img_SR = torch.cat(s2_chunks)
 
-            return {'gt': img_HR, 'lq': img_SR, 'Index': index}
+            if self.old_naip_path:
+                old_naip_chip = skimage.io.imread(old_naip_path)
+                old_naip_chip = cv2.resize(old_naip_chip, (128,128))  # downsampling to match other NAIP dimensions
+                img_old_HR = totensor(old_naip_chip)
+                return {'gt': img_HR, 'lq': img_SR, 'old_naip': img_old_HR, 'Index': index}
+            else:
+                return {'gt': img_HR, 'lq': img_SR, 'Index': index}
 
     def __len__(self):
         return self.data_len
