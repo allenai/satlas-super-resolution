@@ -180,7 +180,7 @@ class SSRDataset(data.Dataset):
 
             img_SR = torch.cat(s2_chunks)
 
-            if self.old_naip_path:
+            if self.old_naip_path is not None:
                 old_naip_chip = skimage.io.imread(old_naip_path)
                 old_naip_chip = cv2.resize(old_naip_chip, (128,128))  # downsampling to match other NAIP dimensions
                 img_old_HR = totensor(old_naip_chip)

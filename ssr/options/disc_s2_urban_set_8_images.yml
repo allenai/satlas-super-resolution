@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_full_set_8images_old_naip
+name: esrgan_urban_set_8images_disc_s2
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -11,7 +11,8 @@ percep_gt_usm: True
 gan_gt_usm: False
 
 # Custom data input args that should be applied to both train and val sets
-feed_disc_s2: False
+feed_disc_s2: True
+old_naip_path: null
 
 # Dataset and Dataloader Settings
 datasets:
@@ -21,8 +22,6 @@ datasets:
 
     sentinel2_path: /data/piperw/super-res/ssr-data/train_urban_set/sentinel2
     naip_path: /data/piperw/super-res/ssr-data/train_urban_set/naip
-
-    old_naip_path: /data/piperw/data/old-naip/
 
     tile_weights: /data/piperw/super-res/ssr-data/train_tile_weights/urban_set_weights.json
 
@@ -45,8 +44,6 @@ datasets:
      sentinel2_path: /data/piperw/super-res/ssr-data/val_set/sentinel2
      naip_path: /data/piperw/super-res/ssr-data/val_set/naip
 
-     old_naip_path: /data/piperw/data/old-naip/
-
      use_shuffle: False
 
      n_s2_images: 8
@@ -64,10 +61,11 @@ network_g:
   num_grow_ch: 32
 
 network_d:
-  type: SSR_UNetDiscriminatorSN
-  num_in_ch: 6  # real/fake input + old naip image * 3 channels (RGB)
+  type: SSR_UNetDiscriminatorSN2
+  num_in_ch: 27  # real/fake input + old naip image * 3 channels (RGB)
   num_feat: 64
   skip_connection: True
+  diff_mod_layers: null #[24, 3]
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
