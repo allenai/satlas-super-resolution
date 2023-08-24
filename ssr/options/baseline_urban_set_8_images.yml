@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_urban_set_8images_satlas-pretrained-32x32
+name: esrgan_urban_set_8images
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto

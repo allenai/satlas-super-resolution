@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_urban_set_8images_satlas-pretrained-32x32
+name: esrgan_full_set_8images
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -16,10 +16,10 @@ datasets:
     name: train
     type: SSRDataset
 
-    sentinel2_path: /data/piperw/super-res/ssr-data/train_urban_set/sentinel2
-    naip_path: /data/piperw/super-res/ssr-data/train_urban_set/naip
+    sentinel2_path: /data/piperw/super-res/ssr-data/train_full_set/sentinel2
+    naip_path: /data/piperw/super-res/ssr-data/train_full_set/naip
 
-    tile_weights: /data/piperw/super-res/ssr-data/train_tile_weights/urban_set_weights.json
+    tile_weights: /data/piperw/super-res/ssr-data/train_tile_weights/full_set_weights.json
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 

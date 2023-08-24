@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_urban_set_8images_satlas-pretrained-32x32
+name: esrgan_gan_loss_only
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -96,26 +96,26 @@ train:
   warmup_iter: -1  # no warm up
 
   # Losses
-  pixel_opt:
-    type: L1Loss
-    loss_weight: 1.0
-    reduction: mean
+  #pixel_opt:
+  #  type: L1Loss
+  #  loss_weight: 1.0
+  #  reduction: mean
   # Perceptual Loss (content and style losses)
-  perceptual_opt:
-    type: PerceptualLoss
-    layer_weights:
-      # before relu
-      'conv1_2': 0.1
-      'conv2_2': 0.1
-      'conv3_4': 1
-      'conv4_4': 1
-      'conv5_4': 1
-    vgg_type: vgg19
-    use_input_norm: true
-    perceptual_weight: !!float 1.0
-    style_weight: 0
-    range_norm: false
-    criterion: l1
+  #perceptual_opt:
+  #  type: PerceptualLoss
+  #  layer_weights:
+  #    # before relu
+  #    'conv1_2': 0.1
+  #    'conv2_2': 0.1
+  #    'conv3_4': 1
+  #    'conv4_4': 1
+  #    'conv5_4': 1
+  #  vgg_type: vgg19
+  #  use_input_norm: true
+  #  perceptual_weight: !!float 1.0
+  #  style_weight: 0
+  #  range_norm: false
+  #  criterion: l1
   # GAN Loss
   gan_opt:
     type: GANLoss

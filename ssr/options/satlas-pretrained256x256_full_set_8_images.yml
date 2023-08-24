@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_urban_set_8images_satlas-pretrained-32x32
+name: esrgan_urban_set_8images_satlas-pretrained-256x256
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -66,6 +66,7 @@ network_d:
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
   #pretrain_network_g: experiments/esrgan_full_set_12images/models/net_g_175000.pth 
+  pretrain_network_g: /data/piperw/super-res/satlas-super-resolution/satlas256_rrdbnet_last.pth 
   param_key_g: params
   strict_load_g: false
   #pretrain_network_d: experiments/esrgan_full_set_12images/models/net_d_175000.pth
