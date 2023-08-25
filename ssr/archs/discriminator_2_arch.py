@@ -52,10 +52,10 @@ class SSR_UNetDiscriminatorSN2(nn.Module):
     def forward(self, x):
 
         if self.diff_mod_layers is not None:
-            s2, naip = x[0], x[1]
+            s2, naip = x[1], x[0]
             s20 = F.leaky_relu(self.s2_conv0(s2), negative_slope=0.2, inplace=True)
             naip0 = F.leaky_relu(self.naip_conv0(naip), negative_slope=0.2, inplace=True)
-            x0 = torch.cat((s20, naip0), dim=1)
+            x0 = torch.cat((naip0, s20), dim=1)
         else:
             x0 = F.leaky_relu(self.conv0(x), negative_slope=0.2, inplace=True)
 

@@ -41,6 +41,7 @@ class SSRDataset(data.Dataset):
             n_sentinel2_images (int): Number of Sentinel-2 images to use as input to model.
             scale (int): Upsample amount, only 4x is supported currently.
             phase (str): 'train' or 'val'.
+            s2_bands (list): list of Sentinel-2 bands to be used for training
             old_naip_path (str): Data path for old NAIP images to feed to discriminator
                                 (if nothing is provided, don't use this feature).
     """
@@ -53,6 +54,7 @@ class SSRDataset(data.Dataset):
         self.n_s2_images = int(opt['n_s2_images'])
         self.scale = int(opt['scale'])
 
+        self.s2_bands = opt['s2_bands'] if 's2_bands' in opt else 'tci'
         self.old_naip_path = opt['old_naip_path'] if 'old_naip_path' in opt else None
 
         # If a path to older NAIP imagery is provided, build dictionary of each chip:path to png.
@@ -92,7 +94,10 @@ class SSRDataset(data.Dataset):
             s2_left_corner = tile[0] * 16, tile[1] * 16
             diffs = int(chip.split('_')[0]) - s2_left_corner[0], int(chip.split('_')[1]) - s2_left_corner[1]
 
-            s2_path = os.path.join(self.s2_path, str(tile[0])+'_'+str(tile[1]), str(diffs[1])+'_'+str(diffs[0])+'.png')
+            if self.s2_bands == 'tci':
+                s2_path = os.path.join(self.s2_path, str(tile[0])+'_'+str(tile[1]), str(diffs[1])+'_'+str(diffs[0])+'.png')
+            else:
+
 
             if self.old_naip_path:
                 self.datapoints.append([n, s2_path, old_chip])

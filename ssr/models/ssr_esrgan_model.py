@@ -75,19 +75,27 @@ class SSRESRGANModel(SRGANModel):
                 if l_g_style is not None:
                     l_g_total += l_g_style
                     loss_dict['l_g_style'] = l_g_style
-            
+
+            lq_shp = self.lq.shape
+            lq_resized = nn.functional.interpolate(self.lq, scale_factor=4)
+
+            # Special case when we want to pass in both sentinel-2 images and old naip to discriminator.
+            if (self.old_naip is not None) and self.feed_disc_s2:
+                if self.diff_mod_layers is None:
+                    output_copy = torch.cat((self.output, lq_resized, self.old_naip), dim=1)          
+                    fake_g_pred = self.net_d(output_copy)
+                else:
+                    print("diff mod layers not implemented for this case yet")
             # If old naip was provided, cat it onto the channel dimension of discriminator input.
-            if self.old_naip is not None:
+            elif self.old_naip is not None:
                 output_copy = torch.cat((self.output, self.old_naip), dim=1)
                 fake_g_pred = self.net_d(output_copy)
             # If we want to feed the discriminator the sentinel-2 time series.
             elif self.feed_disc_s2:
                 if self.diff_mod_layers is None:
-                    lq_shp = self.lq.shape
-                    lq_resized = nn.functional.interpolate(self.lq, scale_factor=4)
-                    output_copy = torch.cat((lq_resized, self.output), dim=1)
+                    output_copy = torch.cat((self.output, lq_resized), dim=1)
                 else:
-                    output_copy = [self.lq, self.output]
+                    output_copy = [self.output, self.lq]
                 fake_g_pred = self.net_d(output_copy)
             else:
                 # gan loss
@@ -104,20 +112,21 @@ class SSRESRGANModel(SRGANModel):
         for p in self.net_d.parameters():
             p.requires_grad = True
 
+        if (self.old_naip is not None) and self.feed_disc_s2: 
+           gan_gt = torch.cat((gan_gt, lq_resized, self.old_naip), dim=1)
+           self.output = torch.cat((self.output, lq_resized, self.old_naip), dim=1)
         # If old naip was provided, stack it onto the channel dimension of discriminator input.
-        if self.old_naip is not None:
+        elif self.old_naip is not None:
             gan_gt = torch.cat((gan_gt, self.old_naip), dim=1)
             self.output = torch.cat((self.output, self.old_naip), dim=1)
         # If we want to feed the discriminator the sentinel-2 time series.
         elif self.feed_disc_s2:
             if self.diff_mod_layers is None:
-                lq_shp = self.lq.shape
-                lq_resized = nn.functional.interpolate(self.lq, scale_factor=4)
-                self.output = torch.cat((lq_resized, self.output), dim=1)
-                gan_gt = torch.cat((lq_resized, gan_gt), dim=1)
+                self.output = torch.cat((self.output, q_resized), dim=1)
+                gan_gt = torch.cat((gan_gt, lq_resized), dim=1)
             else:
-                self.output = [self.lq, self.output]
-                gan_gt = [self.lq, gan_gt]
+                self.output = [self.output, self.lq]
+                gan_gt = [gan_gt, self.lq]
 
         self.optimizer_d.zero_grad()
 
