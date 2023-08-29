@@ -1,32 +1,55 @@
 # Satlas Super Resolution
 
-[Satlas Website](https://satlas.allen.ai) | [Github](https://github.com/allenai/satlas-super-resolution)
-
-Satlas aims to provide open AI-generated geospatial data that is highly accurate, available globally, 
+[Satlas](https://satlas.allen.ai/) aims to provide open AI-generated geospatial data that is highly accurate, available globally, 
 and updated on a frequent (monthly) basis. One of the data applications in Satlas is globally generated 
 **Super-Resolution** imagery for 2023. 
-
-This repository contains the training and inference code for the AI-generated Super-Resolution data found at 
-https://satlas.allen.ai.
 
 <p align="center">
    <img src="figures/kenya_sentinel2.gif" alt="animated" width=300 height=300 />
    <img src="figures/kenya_superres.gif" alt="animated" width=300 height=300 />
 </p>
 
+We describe the many findings that led to the global super-resolution outputs in the paper, [Zooming Out on
+Zooming In: Advancing Super-Resolution for Remote Sensing](https://arxiv.org/pdf/2311.18082.pdf). Supplementary material is available [here](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/Zooming_Out_On_Zooming_In_Supplementary.pdf). 
+
+<p align="center">
+   <img src="figures/teaser.svg" />
+</p>
+
+This repository contains the training and inference code for the AI-generated Super-Resolution data found at 
+https://satlas.allen.ai/, as well as code, data, and model weights corresponding to the paper.
+
 ## Download
 
 ### Data
-The training and validation data is available for download at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_2023-07-24.tar).
+There are two training sets: the full set (train_full_set), consisting of ~44million pairs and the urban set
+(train_urban_set), with ~1.2 million pairs from locations within a 5km radius of cities in the USA with a 
+population >= 50k. The urban set was used for all experiments in the paper, because
+we found the full set to be overwhelmed with monotonous landscapes.
+
+The validation set (val_set) consists of 8192 image pairs. There is a small subset of this validation set (small_val_set) with 256 image pairs that are specifically from
+urban areas, which is useful for qualititive analysis.
+
+Additionally, there is a test set containing eight 16x16 grids of Sentinel-2 tiles from interesting locations including
+Dry Tortugas National Park, Bolivia, France, South Africa, and Japan.
+
+All of above data (except for the full training set due to size) can be downloaded at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_2023-07-24.tar). The full training set is available for download at this [link]().
 
 ### Model Weights
-The weights for our models, with varying number of Sentinel-2 images as input are available for download at these links:
-- [2-s2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_2S2.pth')
-- [6-s2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_6S2.pth')
-- [12-s2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_12S2.pth')
-- [18-s2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_18S2.pth')
+The weights for ESRGAN models, used to generate super-resolution outputs for Satlas, with varying number of Sentinel-2 images as input 
+are available for download at these links:
+- [2-S2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_2S2.pth)
+- [6-S2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_6S2.pth)
+- [12-S2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_12S2.pth)
+- [18-S2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_18S2.pth)
 
-## Dataset Structure
+The weights for the L2 loss-based models trained on our S2-NAIP dataset:
+- [SRCNN](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/srcnn_s2naip.pth)
+- [HighResNet](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/highresnet_s2naip.pth)
+
+*We are working to upload all models and pretrained weights corresponding to the paper.*
+
+## S2-NAIP Dataset Structure
 The dataset consists of image pairs from Sentinel-2 and NAIP satellites, where a pair is a time series of Sentinel-2 images 
 that overlap spatially and temporally [within 3 months] with a NAIP image. The imagery is from 2019-2020 and is limited to the USA.
 
@@ -35,14 +58,6 @@ that overlap spatially and temporally [within 3 months] with a NAIP image. The i
 </p>
 
 The images adhere to the same Web-Mercator tile system as in [SatlasPretrain](https://github.com/allenai/satlas/blob/main/SatlasPretrain.md). 
-
-There are two training sets: the full set, consisting of ~44million pairs and the urban set, with ~1.1 million pairs from locations 
-within a 5km radius of cities in the USA with a population >= 50k. 
-
-There is one small validation set consisting of 30 image pairs that were held out for qualitative assessment.
-
-Additionally, there is a test set containing eight 16x16 grids of Sentinel-2 tiles from interesting locations including
-Dry Tortugas National Park, Bolivia, France, South Africa, and Japan.
 
 ### NAIP
 The NAIP images included in this dataset are 25% of the original NAIP resolution. Each image is 128x128px.
@@ -58,7 +73,10 @@ In each set, there is a `sentinel2` folder containing these time series in the f
 `X,Y` is the column and row position of the NAIP image within the current Sentinel-2 image.
 
 ## Model
-Our model is an adaptation of [ESRGAN](https://arxiv.org/abs/1809.00219), with changes that allow the input to be a time
+In the paper, we experiment with SRCNN, HighResNet, SR3, and ESRGAN. For a good balance of output quality and inference speed, we 
+use the ESRGAN model for generating global super-resolution outputs.
+
+Our ESRGAN model is an adaptation of the original [ESRGAN](https://arxiv.org/abs/1809.00219), with changes that allow the input to be a time
 series of Sentinel-2 images. All models are trained to upsample by a factor of 4. 
 
 <p align="center">
@@ -68,16 +86,18 @@ series of Sentinel-2 images. All models are trained to upsample by a factor of 4
 ## Training
 To train a model on this dataset, run the following command, with the desired configuration file:
 
-`python -m ssr.train -opt ssr/options/urban_set_6images.yml` 
+`python -m ssr.train -opt ssr/options/esrgan_s2naip_urban.yml` 
 
-Make sure the configuration file specifies correct paths to your downloaded data.
+There are several sample configuration files in `ssr/options/`. Make sure the configuration file specifies 
+correct paths to your downloaded data, the desired number of low-resolution input images, model parameters, 
+and pretrained weights (if applicable).
 
 Add the `--debug` flag to the above command if wandb logging, model saving, and visualization creation
 is not wanted. 
 
 ## Inference 
 To run inference on the provided validation or test sets, run the following command
-(`--data_dir` should point to your downloaded data):
+(`--data_dir` should point to your downloaded low-resolution data):
 
 `python -m ssr.infer --data_dir satlas-super-resolution-data/{val,test}_set/sentinel2/ --weights_path PATH_TO_WEIGHTS 
 --n_s2_images NUMBER_S2_IMAGES --save_path PATH_TO_SAVE_OUTPUTS`

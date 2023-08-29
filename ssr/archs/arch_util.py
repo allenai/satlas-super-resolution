@@ -7,9 +7,11 @@ import math
 import torch
 import torchvision
 import warnings
+from math import log2
+from torch import nn, Tensor
+from typing import Tuple, Optional
 from distutils.version import LooseVersion
 from itertools import repeat
-from torch import nn as nn
 from torch.nn import functional as F
 from torch.nn import init as init
 from torch.nn.modules.batchnorm import _BatchNorm
@@ -17,6 +19,583 @@ from torch.nn.modules.batchnorm import _BatchNorm
 from basicsr.ops.dcn import ModulatedDeformConvPack, modulated_deform_conv
 from basicsr.utils import get_root_logger
 
+
+class OneHot(nn.Module):
+    """ One-hot encoder. """
+
+    def __init__(self, num_classes):
+        """ Initialize the OneHot layer.
+
+        Parameters
+        ----------
+        num_classes : int
+            The number of classes to encode.
+        """
+        super().__init__()
+        self.num_classes = num_classes
+
+    def forward(self, x):
+        """ Forward pass. 
+
+        Parameters
+        ----------
+        x : Tensor
+            The input tensor.
+
+        Returns
+        -------
+        Tensor
+            The encoded tensor.
+        """
+        # Current shape of x: (..., 1, H, W).
+        x = x.to(torch.int64)
+        # Remove the empty dimension: (..., H, W).
+        x = x.squeeze(-3)
+        # One-hot encode: (..., H, W, num_classes)
+        x = F.one_hot(x, num_classes=self.num_classes)
+
+        # Permute the dimensions so the number of classes is before the height and width.
+        if x.ndim == 5:
+            x = x.permute(0, 1, 4, 2, 3)  # (..., num_classes, H, W)
+        elif x.ndim == 4:
+            x = x.permute(0, 3, 1, 2)
+        return x
+
+
+class DoubleConv2d(nn.Module):
+    """ Two-layer 2D convolutional block with a PReLU activation in between. """
+
+    # TODO: verify if we still need reflect padding-mode. If we do, set via constructor.
+
+    def __init__(self, in_channels, out_channels, kernel_size=3, use_batchnorm=False):
+        """ Initialize the DoubleConv2d layer.
+
+        Parameters
+        ----------
+        in_channels : int
+            The number of input channels.
+        out_channels : int
+            The number of output channels.
+        kernel_size : int, optional
+            The kernel size, by default 3.
+        use_batchnorm : bool, optional
+            Whether to use batch normalization, by default False.
+        """
+        super().__init__()
+
+        self.doubleconv2d = nn.Sequential(
+            # ------- First block -------
+            # First convolutional layer.
+            nn.Conv2d(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel_size=kernel_size,
+                padding="same",
+                bias=not use_batchnorm,
+                padding_mode="reflect",
+            ),
+            # Batch normalization, if requested.
+            nn.BatchNorm2d(out_channels) if use_batchnorm else nn.Identity(),
+            # Parametric ReLU activation.
+            nn.PReLU(),
+            # Dropout regularization, keep probability 0.5.
+            nn.Dropout(p=0.5),
+            # ------- Second block -------
+            # Second convolutional layer.
+            nn.Conv2d(
+                in_channels=out_channels,
+                out_channels=out_channels,
+                kernel_size=kernel_size,
+                padding="same",
+                bias=not use_batchnorm,
+                padding_mode="reflect",
+            ),
+            # Batch normalization, if requested.
+            nn.BatchNorm2d(out_channels) if use_batchnorm else nn.Identity(),
+            # Parametric ReLU activation.
+            nn.PReLU(),
+            # Dropout regularization, keep probability 0.5.
+            nn.Dropout(p=0.5),
+        )
+
+    def forward(self, x: Tensor) -> Tensor:
+        """ Forward pass of the DoubleConv2d layer.
+
+        Parameters
+        ----------
+        x : Tensor
+            The input tensor of shape (batch_size, in_channels, height, width).
+
+        Returns
+        -------
+        Tensor
+            The output tensor of shape (batch_size, out_channels, height, width).
+        """
+        return self.doubleconv2d(x)
+
+class ResidualBlock(nn.Module):
+    """ Two-layer 2D convolutional block (DoubleConv2d) 
+    with a skip-connection to a sum."""
+
+    def __init__(self, in_channels, kernel_size=3, **kws):
+        """ Initialize the ResidualBlock layer.
+
+        Parameters
+        ----------
+        in_channels : int
+            The number of input channels.
+        kernel_size : int, optional
+            The kernel size, by default 3.
+        """
+        super().__init__()
+        self.residualblock = DoubleConv2d(
+            in_channels=in_channels,
+            out_channels=in_channels,
+            kernel_size=kernel_size,
+            **kws,
+        )
+
+    def forward(self, x: Tensor) -> Tensor:
+        """ Forward pass of the ResidualBlock layer.
+
+        Parameters
+        ----------
+        x : Tensor
+            The input tensor of shape (batch_size, in_channels, height, width).
+
+        Returns
+        -------
+        Tensor
+            The output tensor of shape (batch_size, in_channels, height, width).
+        """
+        x = x + self.residualblock(x)
+        return x
+
+
+class DenseBlock(ResidualBlock):
+    """ Two-layer 2D convolutional block (DoubleConv2d) with a skip-connection 
+    to a concatenation (instead of a sum used in ResidualBlock)."""
+
+    def forward(self, x: Tensor) -> Tensor:
+        """ Forward pass of the DenseBlock layer.
+
+        Parameters
+        ----------
+        x : Tensor
+            The input tensor of shape (batch_size, in_channels, height, width).
+
+        Returns
+        -------
+        Tensor
+            The output tensor of shape (batch_size, in_channels, height, width).
+        """
+        return torch.cat([x, self.residualblock(x)], dim=1)
+
+
+class FusionBlock(nn.Module):
+    """ A block that fuses two revisits into one. """
+
+    def __init__(self, in_channels, kernel_size=3, use_batchnorm=False):
+        """ Initialize the FusionBlock layer.
+
+        Fuse workflow:
+        xx ---> xx ---> x
+        |       ^
+        |-------^
+
+        Parameters
+        ----------
+        in_channels : int
+            The number of input channels.
+        kernel_size : int, optional
+            The kernel size, by default 3.
+        use_batchnorm : bool, optional
+            Whether to use batch normalization, by default False.
+        """
+        super().__init__()
+
+        # TODO: it might be better to fuse the encodings in groups - one per channel.
+
+        number_of_revisits_to_fuse = 2
+
+        self.fuse = nn.Sequential(
+            # A two-layer 2D convolutional block with a skip-connection to a sum.
+            ResidualBlock(
+                number_of_revisits_to_fuse * in_channels,
+                kernel_size,
+                use_batchnorm=use_batchnorm,
+            ),
+            # A 2D convolutional layer.
+            nn.Conv2d(
+                in_channels=number_of_revisits_to_fuse * in_channels,
+                out_channels=in_channels,
+                kernel_size=kernel_size,
+                padding="same",
+                bias=not use_batchnorm,
+                padding_mode="reflect",
+            ),
+            # Batch normalization, if requested.
+            nn.BatchNorm2d(in_channels) if use_batchnorm else nn.Identity(),
+            # Parametric ReLU activation.
+            nn.PReLU(),
+        )
+
+    @staticmethod
+    def split(x):
+        """ Split the input tensor (revisits) into two parts/halves.
+
+        Parameters
+        ----------
+        x : Tensor
+            The input tensor of shape (batch_size, revisits, in_channels, height, width).
+
+        Returns
+        -------
+        tuple of Tensor
+            The two output tensors of shape (batch_size, revisits//2, in_channels, height, width).
+        """
+
+        number_of_revisits = x.shape[1]
+        #assert number_of_revisits % 2 == 0, f"number_of_revisits={number_of_revisits}"
+
+        # (batch_size, revisits//2, in_channels, height, width)
+        first_half = x[:, : number_of_revisits // 2].contiguous()
+        second_half = x[:, number_of_revisits // 2 :].contiguous()
+
+        # TODO: return a carry-encoding?
+        return first_half, second_half
+
+    def forward(self, x):
+        """ Forward pass of the FusionBlock layer.
+
+
+        Parameters
+        ----------
+        x : Tensor
+            The input tensor of shape (batch_size, revisits, in_channels, height, width).
+            Revisits encoding of the input.
+
+        Returns
+        -------
+        Tensor
+            The output tensor of shape (batch_size, revisits/2, in_channels, height, width).
+            Fused encoding of the input.
+        """
+
+        first_half, second_half = self.split(x)
+        batch_size, half_revisits, channels, height, width = first_half.shape
+
+        first_half = first_half.view(
+            batch_size * half_revisits, channels, height, width
+        )
+
+        second_half = second_half.view(
+            batch_size * half_revisits, channels, height, width
+        )
+
+        # Current shape of x: (batch_size * revisits//2, 2*in_channels, height, width)
+        x = torch.cat([first_half, second_half], dim=-3)
+
+        # Fused shape of x: (batch_size * revisits//2, in_channels, height, width)
+        fused_x = self.fuse(x)
+
+        # Fused encoding shape of x: (batch_size, revisits/2, channels, width, height)
+        fused_x = fused_x.view(batch_size, half_revisits, channels, height, width)
+
+        return fused_x
+
+
+class RecursiveFusion(nn.Module):
+    """ Recursively fuses a set of encodings. """
+
+    def __init__(self, in_channels, kernel_size, revisits):
+        """ Initialize the RecursiveFusion layer.
+
+        Parameters
+        ----------
+        in_channels : int
+            The number of input channels.
+        kernel_size : int
+            The kernel size.
+        revisits : int
+            The number of revisits.
+        """
+        super().__init__()
+
+        log2_revisits = log2(revisits)
+        if log2_revisits % 1 == 0:
+            num_fusion_layers = int(log2_revisits)
+        else:
+            num_fusion_layers = int(log2_revisits) + 1
+
+        pairwise_fusion = FusionBlock(in_channels, kernel_size, use_batchnorm=False)
+
+        self.fusion = nn.Sequential(
+            *(pairwise_fusion for _ in range(num_fusion_layers))
+        )
+
+    @staticmethod
+    def pad(x):
+        """ Pad the input tensor with black revisits to a power of 2.
+
+        Parameters
+        ----------
+        x : Tensor
+            The input tensor of shape (batch_size, revisits, in_channels, height, width).
+
+        Returns
+        -------
+        Tensor
+            The output tensor of shape (batch_size, revisits, in_channels, height, width).
+        """
+
+        # TODO: should we pad with copies of revisits instead of zeros?
+        # TODO: move to transforms.py
+        batch_size, revisits, channels, height, width = x.shape
+        log2_revisits = torch.log2(torch.tensor(revisits))
+
+        if log2_revisits % 1 > 0:
+
+            nextpower = torch.ceil(log2_revisits)
+            number_of_black_padding_revisits = int(2 ** nextpower - revisits)
+
+            black_revisits = torch.zeros(
+                batch_size,
+                number_of_black_padding_revisits,
+                channels,
+                height,
+                width,
+                dtype=x.dtype,
+                device=x.device,
+            )
+
+            x = torch.cat([x, black_revisits], dim=1)
+        return x
+
+    def forward(self, x):
+        """ Forward pass of the RecursiveFusion layer.
+
+        Parameters
+        ----------
+        x : Tensor
+            The input tensor of shape (batch_size, revisits, in_channels, height, width).
+
+        Returns
+        -------
+        Tensor
+            The fused output tensor of shape (batch_size, in_channels, height, width).
+        """
+        x = self.pad(x)  # Zero-pad if neccessary to ensure power of 2 revisits
+        x = self.fusion(x)  # (batch_size, 1, channels, height, width)
+        return x.squeeze(1)  # (batch_size, channels, height, width)
+
+
+class ConvTransposeBlock(nn.Module):
+    """ Upsampler block with ConvTranspose2d. """
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        sr_kernel_size,
+        zoom_factor,
+        use_batchnorm=False,
+    ):
+        """ Initialize the ConvTransposeBlock layer.
+
+        Parameters
+        ----------
+        in_channels : int
+            The number of input channels.
+        out_channels : int
+            The number of output channels.
+        kernel_size : int
+            The kernel size.
+        sr_kernel_size : int
+            The kernel size of the SR convolution.
+        zoom_factor : int
+            The zoom factor.
+        use_batchnorm : bool, optional
+            Whether to use batchnorm, by default False.
+        """
+        super().__init__()
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        # TODO: check if sr_kernel_size is the correct name
+        self.sr_kernel_size = sr_kernel_size
+        self.zoom_factor = zoom_factor
+        self.use_batchnorm = use_batchnorm
+
+        self.upsample = nn.Sequential(
+            nn.ConvTranspose2d(
+                in_channels=self.in_channels,
+                out_channels=self.in_channels,
+                kernel_size=self.kernel_size,
+                stride=self.zoom_factor,
+                padding=0,
+            ),
+            nn.PReLU(),
+            nn.Conv2d(
+                in_channels=self.in_channels,
+                out_channels=self.in_channels,
+                kernel_size=self.kernel_size,
+                stride=1,
+                padding="same",
+                bias=not use_batchnorm,
+                padding_mode="reflect",
+            ),
+            nn.BatchNorm2d(self.in_channels) if use_batchnorm else nn.Identity(),
+            nn.PReLU(),
+            nn.Conv2d(
+                in_channels=self.in_channels,
+                out_channels=self.out_channels,
+                kernel_size=self.sr_kernel_size,
+                stride=1,
+                padding="same",
+                bias=not use_batchnorm,
+                padding_mode="reflect",
+            ),
+            nn.BatchNorm2d(self.out_channels) if use_batchnorm else nn.Identity(),
+            nn.PReLU(),
+        )
+
+    def forward(self, x):
+        """ Forward pass of the ConvTransposeBlock layer.
+
+        Parameters
+        ----------
+        x : Tensor
+            The input tensor of shape (batch_size, in_channels, height, width).
+
+        Returns
+        -------
+        Tensor
+            The output tensor of shape (batch_size, out_channels, height, width).
+        """
+        return self.upsample(x)
+
+class RecursiveFusion(nn.Module):
+    """ Recursively fuses a set of encodings. """
+
+    def __init__(self, in_channels, kernel_size, revisits):
+        """ Initialize the RecursiveFusion layer.
+
+        Parameters
+        ----------
+        in_channels : int
+            The number of input channels.
+        kernel_size : int
+            The kernel size.
+        revisits : int
+            The number of revisits.
+        """
+        super().__init__()
+
+        log2_revisits = log2(revisits)
+        if log2_revisits % 1 == 0:
+            num_fusion_layers = int(log2_revisits)
+        else:
+            num_fusion_layers = int(log2_revisits) + 1
+
+        pairwise_fusion = FusionBlock(in_channels, kernel_size, use_batchnorm=False)
+
+        self.fusion = nn.Sequential(
+            *(pairwise_fusion for _ in range(num_fusion_layers))
+        )
+
+    @staticmethod
+    def pad(x):
+        """ Pad the input tensor with black revisits to a power of 2.
+
+        Parameters
+        ----------
+        x : Tensor
+            The input tensor of shape (batch_size, revisits, in_channels, height, width).
+
+        Returns
+        -------
+        Tensor
+            The output tensor of shape (batch_size, revisits, in_channels, height, width).
+        """
+
+        # TODO: should we pad with copies of revisits instead of zeros?
+        # TODO: move to transforms.py
+        batch_size, revisits, channels, height, width = x.shape
+        log2_revisits = torch.log2(torch.tensor(revisits))
+
+        if log2_revisits % 1 > 0:
+
+            nextpower = torch.ceil(log2_revisits)
+            number_of_black_padding_revisits = int(2 ** nextpower - revisits)
+
+            black_revisits = torch.zeros(
+                batch_size,
+                number_of_black_padding_revisits,
+                channels,
+                height,
+                width,
+                dtype=x.dtype,
+                device=x.device,
+            )
+
+            x = torch.cat([x, black_revisits], dim=1)
+        return x
+
+    def forward(self, x):
+        """ Forward pass of the RecursiveFusion layer.
+
+        Parameters
+        ----------
+        x : Tensor
+            The input tensor of shape (batch_size, revisits, in_channels, height, width).
+
+        Returns
+        -------
+        Tensor
+            The fused output tensor of shape (batch_size, in_channels, height, width).
+        """
+        x = self.pad(x)  # Zero-pad if neccessary to ensure power of 2 revisits
+        x = self.fusion(x)  # (batch_size, 1, channels, height, width)
+        return x.squeeze(1)  # (batch_size, channels, height, width)
+
+class PixelShuffleBlock(ConvTransposeBlock):
+
+    """PixelShuffle block with ConvTranspose2d for sub-pixel convolutions. """
+
+    # TODO: add a Dropout layer between the convolution layers?
+
+    def __init__(self, **kws):
+        super().__init__(**kws)
+        #assert self.in_channels % self.zoom_factor ** 2 == 0
+        self.in_channels = self.in_channels // self.zoom_factor ** 2
+        self.upsample = nn.Sequential(
+            nn.PixelShuffle(self.zoom_factor),
+            nn.Conv2d(
+                in_channels=self.in_channels,
+                out_channels=self.in_channels,
+                kernel_size=self.sr_kernel_size,
+                stride=1,
+                padding="same",
+                bias=not self.use_batchnorm,
+                padding_mode="reflect",
+            ),
+            nn.BatchNorm2d(self.in_channels) if self.use_batchnorm else nn.Identity(),
+            nn.PReLU(),
+            nn.Conv2d(
+                in_channels=self.in_channels,
+                out_channels=self.out_channels,
+                kernel_size=self.sr_kernel_size,
+                stride=1,
+                padding="same",
+                bias=not self.use_batchnorm,
+                padding_mode="reflect",
+            ),
+            nn.BatchNorm2d(self.out_channels) if self.use_batchnorm else nn.Identity(),
+            nn.PReLU(),
+        )
 
 @torch.no_grad()
 def default_init_weights(module_list, scale=1, bias_fill=0, **kwargs):
