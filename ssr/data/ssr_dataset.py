@@ -54,7 +54,7 @@ class SSRDataset(data.Dataset):
         self.n_s2_images = int(opt['n_s2_images'])
         self.scale = int(opt['scale'])
 
-        self.s2_bands = opt['s2_bands'] if 's2_bands' in opt else 'tci'
+        self.s2_bands = opt['s2_bands'] if 's2_bands' in opt else ['tci']
         self.old_naip_path = opt['old_naip_path'] if 'old_naip_path' in opt else None
 
         # If a path to older NAIP imagery is provided, build dictionary of each chip:path to png.
@@ -94,10 +94,15 @@ class SSRDataset(data.Dataset):
             s2_left_corner = tile[0] * 16, tile[1] * 16
             diffs = int(chip.split('_')[0]) - s2_left_corner[0], int(chip.split('_')[1]) - s2_left_corner[1]
 
-            if self.s2_bands == 'tci':
-                s2_path = os.path.join(self.s2_path, str(tile[0])+'_'+str(tile[1]), str(diffs[1])+'_'+str(diffs[0])+'.png')
+            # Because the datasets are currently processed either as `data/s2/tile/X_Y.png` or `data/s2/tile/band/X_Y.png`,
+            # have to treat the following two situations seperately for now.
+            if self.s2_bands == ['tci']:
+                s2_path = [os.path.join(self.s2_path, str(tile[0])+'_'+str(tile[1]), str(diffs[1])+'_'+str(diffs[0])+'.png')]
             else:
-
+                s2_path = []
+                for band in self.s2_bands:
+                    p = os.path.join(self.s2_path, str(tile[0])+'_'+str(tile[1]), band, str(diffs[1])+'_'+str(diffs[0])+'.png')
+                    s2_path.append(p)
 
             if self.old_naip_path:
                 self.datapoints.append([n, s2_path, old_chip])
@@ -154,36 +159,56 @@ class SSRDataset(data.Dataset):
             # Load the T*32x32 S2 file.
             # There are a few rare cases where loading the Sentinel-2 image fails, skip if found.
             try:
-                s2_images = skimage.io.imread(s2_path)
+                if self.s2_bands == ['tci']:
+                    s2_images = skimage.io.imread(s2_path[0])
+                else:
+                    s2_images = []
+                    for i,band in enumerate(s2_path):
+                        band_im = skimage.io.imread(band)
+                        if len(band_im.shape) == 3:
+                            rshp = np.reshape(band_im, (-1, 32, 32, band_im.shape[-1]))
+                        else:
+                            rshp = np.reshape(band_im, (-1, 32, 32))
+                        cut = np.reshape(rshp[:self.n_s2_images], (-1, 32, 32))
+
+                        if i == 0:
+                            s2_images = totensor(cut)
+                        else:
+                            s2_images = torch.cat((s2_images, cut), dim=0)
+
             except:
                 counter += 1
                 continue
 
-            # Reshape to be Tx32x32.
-            s2_chunks = np.reshape(s2_images, (-1, 32, 32, 3))
+            if self.s2_bands == ['tci']:
+                # Reshape to be Tx32x32.
+                s2_chunks = np.reshape(s2_images, (-1, 32, 32, 3))
 
-            # Iterate through the 32x32 chunks at each timestep, separating them into "good" (valid)
-            # and "bad" (partially black, invalid). Will use these to pick best collection of S2 images.
-            goods, bads = [], []
-            for i,ts in enumerate(s2_chunks):
-                if [0, 0, 0] in ts:
-                    bads.append(i)
+                # Iterate through the 32x32 chunks at each timestep, separating them into "good" (valid)
+                # and "bad" (partially black, invalid). Will use these to pick best collection of S2 images.
+                goods, bads = [], []
+                for i,ts in enumerate(s2_chunks):
+                    if [0, 0, 0] in ts:
+                        bads.append(i)
+                    else:
+                        goods.append(i)
+
+                # Pick 18 random indices of s2 images to use. Skip ones that are partially black.
+                if len(goods) >= self.n_s2_images:
+                    rand_indices = random.sample(goods, self.n_s2_images)
                 else:
-                    goods.append(i)
+                    need = self.n_s2_images - len(goods)
+                    rand_indices = goods + random.sample(bads, need)
 
-            # Pick 18 random indices of s2 images to use. Skip ones that are partially black.
-            if len(goods) >= self.n_s2_images:
-                rand_indices = random.sample(goods, self.n_s2_images)
+                s2_chunks = [s2_chunks[i] for i in rand_indices]
+                s2_chunks = np.array(s2_chunks)
+                s2_chunks = [totensor(img) for img in s2_chunks]
+
+                img_SR = torch.cat(s2_chunks)
             else:
-                need = self.n_s2_images - len(goods)
-                rand_indices = goods + random.sample(bads, need)
+                img_SR = s2_images
 
-            s2_chunks = [s2_chunks[i] for i in rand_indices]
-            s2_chunks = np.array(s2_chunks)
-            s2_chunks = [totensor(img) for img in s2_chunks]
             img_HR = totensor(naip_chip)
-
-            img_SR = torch.cat(s2_chunks)
 
             if self.old_naip_path is not None:
                 old_naip_chip = skimage.io.imread(old_naip_path)

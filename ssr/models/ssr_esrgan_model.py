@@ -122,7 +122,7 @@ class SSRESRGANModel(SRGANModel):
         # If we want to feed the discriminator the sentinel-2 time series.
         elif self.feed_disc_s2:
             if self.diff_mod_layers is None:
-                self.output = torch.cat((self.output, q_resized), dim=1)
+                self.output = torch.cat((self.output, lq_resized), dim=1)
                 gan_gt = torch.cat((gan_gt, lq_resized), dim=1)
             else:
                 self.output = [self.output, self.lq]

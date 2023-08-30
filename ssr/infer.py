@@ -12,7 +12,7 @@ from basicsr.archs.rrdbnet_arch import RRDBNet
 totensor = torchvision.transforms.ToTensor()
 
 
-def infer(s2_data, n_s2_images, device):
+def infer(s2_data, n_s2_images, device, extra_res=None):
     # Reshape to be Tx32x32x3.
     s2_chunks = np.reshape(s2_data, (-1, 32, 32, 3))
 
@@ -41,6 +41,11 @@ def infer(s2_data, n_s2_images, device):
 
     # Feed input of shape [batch, n_s2_images * channels, 32, 32] through model.
     output = model(s2_tensor)
+
+    # If extra_res is specified, run output through the 4x->16x model after the 4x model.
+    if extra_res is not None:
+        output = extra_res(output)
+
     return output
 
 def stitch(chunks_dir, img_size, save_path, scale=4, grid_size=16, sentinel2=False):
@@ -71,18 +76,29 @@ if __name__ == "__main__":
     parser.add_argument('--n_s2_images', type=int, default=6, help="Number of Sentinel-2 images as input, must correlate to correct model weights.")
     parser.add_argument('--save_path', type=str, default="outputs", help="Directory where generated outputs will be saved.")
     parser.add_argument('--stitch', action='store_true', help="If running on 16x16 grid of Sentinel-2 images, option to stitch together whole image.")
+    parser.add_argument('--extra_res_weights', help="Weights to a trained 4x->16x model. Doesn't currently work with stitch I don't think.")
     args = parser.parse_args()
 
     device = torch.device('cuda')
     data_dir = args.data_dir
     n_s2_images = args.n_s2_images
     save_path = args.save_path
+    extra_res_weights = args.extra_res_weights
 
     # Initialize generator model and load in specified weights.
     model = RRDBNet(num_in_ch=n_s2_images*3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
     state_dict = torch.load(args.weights_path)
     model.load_state_dict(state_dict['params_ema'])
     model.eval()
+
+    # If extra_res is specified, initialize that second model.
+    model2 = None
+    if extra_res_weights is not None:
+        print("Initializing the 4x->16x model...")
+        model2 = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=128, num_block=23, num_grow_ch=32, scale=4).to(device) 
+        state_dict = torch.load(extra_res_weights)
+        model2.load_state_dict(state_dict['params_ema'])
+        model2.eval()
 
     # The images in the data_dir should be in the same format as the satlas-super-resolution 
     # validation set: {data_dir}/sentinel2/1234_5678/X_Y.png where X_Y.png is of shape [n_s2_images * 32, 32, 3].
@@ -101,7 +117,7 @@ if __name__ == "__main__":
         
         im = skimage.io.imread(png)
 
-        output = infer(im, n_s2_images, device)
+        output = infer(im, n_s2_images, device, model2)
 
         output = output.squeeze().cpu().detach().numpy()
         output = np.transpose(output, (1, 2, 0))  # transpose to [h, w, 3] to save as image
@@ -124,8 +140,11 @@ if __name__ == "__main__":
             # Stitching the super resolution.
             sr_chunks_dir = os.path.join(save_path, tile)
             sr_save_path = os.path.join(save_path, tile, 'stitched_sr.png')
-            stitch(sr_chunks_dir, 2048, sr_save_path)
-
+            if extra_res_weights is not None:
+                stitch(sr_chunks_dir, 8192, sr_save_path)
+            else:
+                stitch(sr_chunks_dir, 2048, sr_save_path)
+            
             # Stitching the Sentinel-2.
             s2_chunks_dir = os.path.join(data_dir, tile)
             s2_save_path = os.path.join(save_path, tile, 'stitched_s2.png')

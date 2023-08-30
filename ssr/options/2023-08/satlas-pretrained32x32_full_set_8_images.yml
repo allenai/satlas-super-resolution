@@ -65,7 +65,8 @@ network_d:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: experiments/esrgan_full_set_12images/models/net_g_175000.pth 
+  #pretrain_network_g: experiments/esrgan_full_set_12images/models/net_g_175000.pth
+  pretrain_network_g: weights/satlas32_rrdbnet_last.pth 
   param_key_g: params
   strict_load_g: false
   #pretrain_network_d: experiments/esrgan_full_set_12images/models/net_d_175000.pth

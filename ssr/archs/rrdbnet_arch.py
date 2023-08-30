@@ -120,6 +120,7 @@ class SSR_RRDBNet(nn.Module):
             feat = pixel_unshuffle(x, scale=4)
         else:
             feat = x
+
         feat = self.conv_first(feat)
         body_feat = self.conv_body(self.body(feat))
         feat = feat + body_feat
