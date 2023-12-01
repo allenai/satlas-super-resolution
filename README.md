@@ -22,18 +22,21 @@ https://satlas.allen.ai/, as well as code, data, and model weights corresponding
 ## Download
 
 ### Data
-There are two training sets: the full set (train_full_set), consisting of ~44million pairs and the urban set
-(train_urban_set), with ~1.2 million pairs from locations within a 5km radius of cities in the USA with a 
-population >= 50k. The urban set was used for all experiments in the paper, because
-we found the full set to be overwhelmed with monotonous landscapes.
+There are two training sets: 
+- The full set (train_full_set), consisting of ~44million pairs from all locations where NAIP imagery was available between 2019-2020.
+- The urban set (train_urban_set), with ~1.2 million pairs from locations within a 5km radius of cities in the USA with a 
+population >= 50k. 
 
-The validation set (val_set) consists of 8192 image pairs. There is a small subset of this validation set (small_val_set) with 256 image pairs that are specifically from
+The urban set was used for all experiments in the paper, because we found the full set to be overwhelmed with monotonous landscapes.
+
+There are three val/test sets:
+- The validation set (val_set) consists of 8192 image pairs. 
+- A small subset of this validation set (small_val_set) with 256 image pairs that are specifically from
 urban areas, which is useful for qualititive analysis.
-
-Additionally, there is a test set containing eight 16x16 grids of Sentinel-2 tiles from interesting locations including
+- A test set containing eight 16x16 grids of Sentinel-2 tiles from interesting locations including
 Dry Tortugas National Park, Bolivia, France, South Africa, and Japan.
 
-All of above data (except for the full training set due to size) can be downloaded at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_2023-07-24.tar). The full training set is available for download at this [link]().
+All of the above data (except for the full training set due to size) can be downloaded at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_2023-07-24.tar). The full training set is available for download at this [link]().
 
 ### Model Weights
 The weights for ESRGAN models, used to generate super-resolution outputs for Satlas, with varying number of Sentinel-2 images as input 
