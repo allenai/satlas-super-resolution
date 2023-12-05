@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_full_set_12images
+name: esrgan_s2naip_full
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -10,23 +10,26 @@ l1_gt_usm: True
 percep_gt_usm: True
 gan_gt_usm: False
 
+# Feed the discriminator the same low-res images as the generator receives 
+feed_disc_lr: True
+
 # Dataset and Dataloader Settings
 datasets:
   train:
     name: train
     type: S2NAIPDataset
 
-    sentinel2_path: super_resolution_2023-07-24/train_full_set/sentinel2
-    naip_path: super_resolution_2023-07-24/train_full_set/naip
+    sentinel2_path: super_resolution_train-full-set_2023-12-01/train_full_set/sentinel2
+    naip_path: super_resolution_train-full-set_2023-12-01/train_full_set/naip
 
-    tile_weights: super_resolution_2023-07-24/train_tile_weights/full_dataset_weights.json
+    tile_weights: super_resolution_train-full-set_2023-12-01/train_tile_weights/full_dataset_weights.json
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
     num_worker_per_gpu: 8
     batch_size_per_gpu: 32
 
-    n_s2_images: 12
+    n_s2_images: 8
 
     io_backend:
       type: disk
@@ -35,12 +38,12 @@ datasets:
      name: validation
      type: S2NAIPDataset
 
-     sentinel2_path: super_resolution_2023-07-24/val_set/sentinel2
-     naip_path: super_resolution_2023-07-24/val_set/naip
+     sentinel2_path: super_resolution_2023-12-01/small_val_set/sentinel2
+     naip_path: super_resolution_2023-12-01/small_val_set/naip
 
      use_shuffle: False
 
-     n_s2_images: 12
+     n_s2_images: 8
 
      io_backend:
        type: disk
@@ -63,10 +66,10 @@ network_d:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: experiments/esrgan_full_set_12images/models/net_g_175000.pth 
+  #pretrain_network_g: experiments/sample_net_g.pth 
   param_key_g: params_ema
   strict_load_g: true
-  #pretrain_network_d: experiments/esrgan_full_set_12images/models/net_d_175000.pth
+  #pretrain_network_d: experiments/sample_net_d.pth 
   param_key_d: params
   strict_load_d: true
   resume_state: ~

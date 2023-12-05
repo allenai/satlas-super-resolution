@@ -5,21 +5,16 @@ scale: 4
 num_gpu: auto
 manual_seed: 0
 
-# USM the Ground-Truth
-l1_gt_usm: True
-percep_gt_usm: True
-gan_gt_usm: False
-
 # Dataset and Dataloader Settings
 datasets:
   train:
     name: train
     type: S2NAIPDataset
 
-    sentinel2_path:  super_resolution_2023-07-24/train_urban_set/sentinel2
-    naip_path:  super_resolution_2023-07-24/train_urban_set/naip
+    sentinel2_path:  super_resolution_2023-12-01/train_urban_set/sentinel2
+    naip_path:  super_resolution_2023-12-01/train_urban_set/naip
 
-    tile_weights:  super_resolution_2023-07-24/train_tile_weights/urban_set_weights.json
+    tile_weights:  super_resolution_2023-12-01/train_tile_weights/urban_set_weights.json
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
@@ -37,8 +32,8 @@ datasets:
      name: validation
      type: S2NAIPDataset
 
-     sentinel2_path:  super_resolution_2023-07-24/val_set/sentinel2
-     naip_path:  super_resolution_2023-07-24/val_set/naip
+     sentinel2_path:  super_resolution_2023-12-01/small_val_set/sentinel2
+     naip_path:  super_resolution_2023-12-01/small_val_set/naip
 
      use_shuffle: False
 
@@ -66,7 +61,7 @@ network_g:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g:
+  #pretrain_network_g: experiments/sample_net_g.pth 
   param_key_g: params_ema
   strict_load_g: true
   resume_state: ~

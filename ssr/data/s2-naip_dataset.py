@@ -52,7 +52,22 @@ class S2NAIPDataset(data.Dataset):
         self.scale = int(opt['scale'])
 
         # Flags whether the model being used expects [b, n_images, channels, h, w] or [b, n_images*channels, h, w].
+        # The L2-based models expect the first shape, while the ESRGAN models expect the latter.
         self.use_3d = opt['use_3d'] if 'use_3d' in opt else False
+
+        # Path to high-res images of older timestamps and corresponding locations to training data.
+        # In the case of the S2NAIP dataset, that means NAIP images from 2016-2018.
+        self.old_naip_path = opt['old_naip_path'] if 'old_naip_path' in opt else None
+
+        # If a path to older NAIP imagery is provided, build dictionary of each chip:path to png.
+        if self.old_naip_path is not None:
+            old_naip_chips = {}
+            for old_naip in glob.glob(self.old_naip_path + '/**/*.png', recursive=True):
+                old_chip = old_naip.split('/')[-1][:-4]
+
+                if not old_chip in old_naip_chips:
+                    old_naip_chips[old_chip] = []
+                old_naip_chips[old_chip].append(old_naip)
 
         # Paths to Sentinel-2 and NAIP imagery.
         self.s2_path = opt['sentinel2_path']
@@ -70,13 +85,21 @@ class S2NAIPDataset(data.Dataset):
             chip = split_path[-1][:-4]
             tile = int(chip.split('_')[0]) // 16, int(chip.split('_')[1]) // 16
 
+            # If old_hr_path is specified, grab an old high-res image (NAIP) for the current datapoint.
+            if self.old_naip_path is not None:
+                old_chip = old_naip_chips[chip][0]
+
             # Now compute the corresponding Sentinel-2 tiles.
             s2_left_corner = tile[0] * 16, tile[1] * 16
             diffs = int(chip.split('_')[0]) - s2_left_corner[0], int(chip.split('_')[1]) - s2_left_corner[1]
 
             s2_path = os.path.join(self.s2_path, str(tile[0])+'_'+str(tile[1]), str(diffs[1])+'_'+str(diffs[0])+'.png')
 
-            self.datapoints.append([n, s2_path])
+            # Return the low-res, high-res, and [optionally] older high-res image paths. 
+            if self.old_naip_path:
+                self.datapoints.append([n, s2_path, old_chip])
+            else:
+                self.datapoints.append([n, s2_path])
 
         self.data_len = len(self.datapoints)
         print("Number of datapoints for split ", self.split, ": ", self.data_len)
@@ -103,7 +126,9 @@ class S2NAIPDataset(data.Dataset):
 
     def __getitem__(self, index):
 
-        # A while loop and try/excepts to catch a few potential errors and continue if caught.
+        # A while loop and try/excepts to catch a few images that we want to ignore during 
+        # training but do not necessarily want to remove from the dataset, such as the
+        # ground truth NAIP image being partially invalid (all black). 
         counter = 0
         while True:
             index += counter  # increment the index based on what errors have been caught
@@ -111,9 +136,13 @@ class S2NAIPDataset(data.Dataset):
                 index = 0
 
             datapoint = self.datapoints[index]
-            naip_path, s2_path = datapoint[0], datapoint[1]
 
-            # Load the 512x512 NAIP chip.
+            if self.old_naip_path:
+                naip_path, s2_path, old_naip_path = datapoint[0], datapoint[1], datapoint[2]
+            else:
+                naip_path, s2_path = datapoint[0], datapoint[1]
+
+            # Load the 128x128 NAIP chip.
             naip_chip = skimage.io.imread(naip_path)
 
             # Check for black pixels (almost certainly invalid) and skip if found.
@@ -158,7 +187,12 @@ class S2NAIPDataset(data.Dataset):
             else:
                 img_S2 = torch.cat(s2_chunks)
 
-            return {'gt': img_HR, 'lq': img_S2, 'Index': index}
+            if self.old_naip_path is not None:
+                old_naip_chip = skimage.io.imread(old_naip_path)  # load the old HR image, should be same shape as HR
+                img_old_HR = totensor(old_naip_chip)
+                return {'hr': img_HR, 'lr': img_S2, 'old_hr': img_old_HR, 'Index': index}
+
+            return {'hr': img_HR, 'lr': img_S2, 'Index': index}
 
     def __len__(self):
         return self.data_len
