@@ -48,6 +48,20 @@ datasets:
      io_backend:
        type: disk
 
+  test:
+     name: test
+     type: S2NAIPDataset
+
+     sentinel2_path: super_resolution_2023-12-01/small_val_set/sentinel2
+     naip_path: super_resolution_2023-12-01/small_val_set/naip
+
+     use_shuffle: False
+
+     n_s2_images: 8
+
+     io_backend:
+       type: disk
+
 # Network Structures
 network_g:
   type: SSR_RRDBNet
@@ -146,6 +160,10 @@ val:
        type: calculate_ssim
        crop_border: 4
        test_y_channel: false
+
+# Testing Settings - Validation metrics will be reported and displayed to screen
+test:
+  save_img: True
 
 # Logging Settings
 logger:

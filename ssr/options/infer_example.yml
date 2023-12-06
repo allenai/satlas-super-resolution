@@ -1,0 +1,31 @@
+# General Settings
+name: infer_example
+model_type: SSRESRGANModel
+scale: 4
+num_gpu: auto
+manual_seed: 0
+
+# Inference Settings
+
+# Root directory for low-res images you want super-resolved.
+# This can be in any directory structures, but the code expects pngs.
+data_dir: super_resolution_2023-12-01/test_set/sentinel2/
+
+n_lr_images: 8
+
+save_path: testing_infer/
+
+# Structure of the generator you want to use for inference
+network_g:
+  type: SSR_RRDBNet
+  num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
+  num_out_ch: 3
+  num_feat: 64
+  num_block: 23
+  num_grow_ch: 32
+
+# Load pretrained weights into the generator that is defined above
+path:
+  pretrain_network_g: experiments/sample_net_g.pth
+  param_key_g: params_ema
+  strict_load_g: true

@@ -7,7 +7,7 @@ import torchvision
 import skimage.io
 import numpy as np
 
-from ssr.utils.infer_utils import format_s2naip_data
+from ssr.utils.infer_utils import format_s2naip_data, stitch
 from ssr.utils.options import yaml_load
 from ssr.utils.model_utils import build_network
 
@@ -44,11 +44,13 @@ if __name__ == "__main__":
     print("Running inference on ", len(pngs), " images.")
 
     for i,png in enumerate(pngs):
-        print("png:", png)
-
-        save_dir = os.path.join(save_path, str(i))
+        # Want to preserve the tile and index information in the filename of the low-res 
+        # images so that they can be stitched together correctly.
+        file_info = png.split('/')
+        tile, idx = file_info[-2], file_info[-1]
+        save_dir = os.path.join(save_path, tile)
+        save_fn = save_dir + '/' + idx
         os.makedirs(save_dir, exist_ok=True)
-        print("save dir:", save_dir)
 
         im = skimage.io.imread(png)
 
@@ -56,16 +58,27 @@ if __name__ == "__main__":
         input_tensor, s2_image = format_s2naip_data(im, n_lr_images, device)
         output = model(input_tensor)
 
-        # Save the low-res input image in the same dir as the super-res image so
-        # it is easy for the user to compare.
-        skimage.io.imsave(save_dir + '/lr.png', s2_image)
-
-        # Convert the model output back to a numpy array and adjust shape and range.
-        output = torch.clamp(output, 0, 1)
         output = output.squeeze().cpu().detach().numpy()
-        output = np.transpose(output, (1, 2, 0))  # transpose to [h, w, 3] to save as image
-        output = (output * 255).astype(np.uint8)
+        output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
+        skimage.io.imsave(save_fn, output, check_contrast=False)
 
-        # Save the super-res output image
-        skimage.io.imsave(save_dir + '/sr.png', output, check_contrast=False)
+    # Iterate over each tile, stitching together the chunks of the Sentinel-2 image into one big image,
+    # and stitching together the super resolved chunks into one big image.
+    # NOTE: to use this with datasets other than S2NAIP test_set, there will likely be necessary changes.
+    for tile in os.listdir(data_dir):
+        print("Stitching images for tile ", tile)
+
+        if len(os.listdir(os.path.join(data_dir, tile))) < 256:
+            print("Tile ", tile, " contains less than 256 chunks, cannot stitch. Skipping.")
+            continue
+
+        # Stitching the super resolution.
+        sr_chunks_dir = os.path.join(save_path, tile)
+        sr_save_path = os.path.join(save_path, tile, 'stitched_sr.png')
+        stitch(sr_chunks_dir, 2048, sr_save_path)
+
+        # Stitching the Sentinel-2.
+        s2_chunks_dir = os.path.join(data_dir, tile)
+        s2_save_path = os.path.join(save_path, tile, 'stitched_s2.png')
+        stitch(s2_chunks_dir, 512, s2_save_path, sentinel2=True)
 

@@ -3,13 +3,13 @@ import cv2
 import glob
 import torch
 import random
-import torchvision
 import skimage.io
+import torchvision
 import numpy as np
-from PIL import Image
 from torch.utils import data as data
 from torch.utils.data import WeightedRandomSampler
 from torchvision.transforms import functional as trans_fn
+
 from basicsr.utils.registry import DATASET_REGISTRY
 
 totensor = torchvision.transforms.ToTensor()
@@ -188,7 +188,7 @@ class S2NAIPDataset(data.Dataset):
                 img_S2 = torch.cat(s2_chunks)
 
             if self.old_naip_path is not None:
-                old_naip_chip = skimage.io.imread(old_naip_path)  # load the old HR image, should be same shape as HR
+                old_naip_chip = skimage.io.imread(old_naip_path)
                 img_old_HR = totensor(old_naip_chip)
                 return {'hr': img_HR, 'lr': img_S2, 'old_hr': img_old_HR, 'Index': index}
 

@@ -106,19 +106,31 @@ and pretrained weights (if applicable).
 Add the `--debug` flag to the above command if wandb logging, model saving, and visualization creation
 is not wanted. 
 
+## Testing
+To evaluate the model on a validation or test set, when **ground truth high-res images are available**,
+run the following command, with the desired configuration file:
+
+`python -m ssr.test -opt ssr/options/esrgan_s2naip_urban.yml`
+
+This will test the model using data and parameters specified in `['datasets']['test']`, and will save the model 
+outputs as pngs in the `results/` directory. Specified metrics will be displayed to the screen at the end. 
+
 ## Inference 
-To run inference on the provided validation or test sets, run the following command
-(`--data_dir` should point to your downloaded low-resolution data):
+To run inference on data, when **ground truth high-res images are not available**, run the following command:
 
-`python -m ssr.infer --data_dir satlas-super-resolution-data/{val,test}_set/sentinel2/ --weights_path PATH_TO_WEIGHTS 
---n_s2_images NUMBER_S2_IMAGES --save_path PATH_TO_SAVE_OUTPUTS`
+`python -m ssr.infer -opt ssr/options/infer_example.yml`
 
-When running inference on an entire Sentinel-2 tile (consisting of a 16x16 grid of chunks), there is a `--stitch` flag that will
-stitch the individual chunks together into one large image. 
+Inference settings are specified in the configuration file. The `data_dir` can be of any directory structure, but must contain pngs.
+Both the original low-res images and the super-res images will be saved to the `save_path`.
 
-Try this feature out on the test set:
+---------------------------------------------------
 
-`python -m ssr.infer --data_dir satlas-super-resolution-data/test_set/sentinel2/ --stitch`
+When running inference on an entire Sentinel-2 tile (consisting of a 16x16 grid of chunks), there is the `infer_grid.py` script
+that will stitch the individual chunks together into one large image. 
+
+Try this out on the S2NAIP test set with this command:
+
+`python -m ssr.infer_grid -opt ssr/options/infer_grid_example.yml`
 
 <p align="center">
    <img src="figures/stitch_example.svg" height=300 />
@@ -152,5 +164,9 @@ Thanks to these codebases for foundational Super-Resolution code and inspiration
 
 [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN/tree/master)
 
+[Image Super-Resolution via Iterative Refinement (SR3)](https://github.com/Janspiry/Image-Super-Resolution-via-Iterative-Refinement)
+
+[WorldStrat](https://github.com/worldstrat/worldstrat/tree/main)
+
 ## Contact
-If you have any questions, please email `piperw@allenai.org`.
+If you have any questions, please email `piperw@allenai.org` or [open an issue](https://github.com/allenai/satlas-super-resolution/issues/new).
