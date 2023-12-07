@@ -8,12 +8,12 @@ import torch.nn.functional as F
 from collections import OrderedDict
 
 from basicsr.archs import build_network
-from basicsr.metrics import calculate_metric
 from basicsr.models.srgan_model import SRGANModel
 from basicsr.utils import USMSharp, get_root_logger, imwrite, tensor2img
 from basicsr.utils.registry import MODEL_REGISTRY
 
 from ssr.losses import build_loss
+from ssr.metrics import calculate_metric
 
 @MODEL_REGISTRY.register()
 class SSRESRGANModel(SRGANModel):
@@ -103,15 +103,15 @@ class SSRESRGANModel(SRGANModel):
 
     @torch.no_grad()
     def feed_data(self, data):
-        self.lr = data['lr'].to(self.device)
+        self.lr = data['lr'].to(self.device).float()/255
         if 'hr' in data:
-            self.gt = data['hr'].to(self.device)
+            self.gt = data['hr'].to(self.device).float()/255
             self.gt_usm = self.usm_sharpener(self.gt)  # sharpen the ground truth as in Real-ESRGAN paper
 
         # Provide a high-res image at the same location, but different timestamp from the gt, to the discriminator.
         self.old_hr = None
         if 'old_hr' in data:
-            self.old_hr = data['old_hr'].to(self.device)
+            self.old_hr = data['old_hr'].to(self.device).float()/255
 
         # Feed discriminator the same low-res images that the generator receives.
         self.feed_disc_lr = True if ('feed_disc_lr' in self.opt and self.opt['feed_disc_lr']) else False
@@ -251,16 +251,41 @@ class SSRESRGANModel(SRGANModel):
             out_dict['gt'] = self.gt.detach().cpu()
         return out_dict
 
+    def _initialize_best_metric_results(self, dataset_name, metrics2run):
+        """Initialize the best metric results dict for recording the best metric value and iteration."""
+        if hasattr(self, 'best_metric_results') and dataset_name in self.best_metric_results:
+            return
+        elif not hasattr(self, 'best_metric_results'):
+            self.best_metric_results = dict()
+
+        # add a dataset record
+        record = dict()
+        for metric, content in metrics2run.items():
+            better = content.get('better', 'higher')
+            init_val = float('-inf') if better == 'higher' else float('inf')
+            record[metric] = dict(better=better, val=init_val, iter=-1)
+        self.best_metric_results[dataset_name] = record
+
     def nondist_validation(self, dataloader, current_iter, tb_logger, save_img):
         dataset_name = dataloader.dataset.opt['name']
-        with_metrics = self.opt['val'].get('metrics') is not None
+
+        with_metrics = False
+        if dataset_name == 'test':
+            with_metrics = self.opt['test'].get('metrics') is not None
+            if with_metrics:
+                metrics2run = self.opt['test']['metrics']
+        else:
+            with_metrics = self.opt['val'].get('metrics') is not None
+            if with_metrics:
+                metrics2run = self.opt['val']['metrics']
+
         use_pbar = self.opt['val'].get('pbar', False)
 
         if with_metrics:
             if not hasattr(self, 'metric_results'):  # only execute in the first run
-                self.metric_results = {metric: 0 for metric in self.opt['val']['metrics'].keys()}
+                self.metric_results = {metric: 0 for metric in metrics2run.keys()}
             # initialize the best metric results for each dataset_name (supporting multiple validation datasets)
-            self._initialize_best_metric_results(dataset_name)
+            self._initialize_best_metric_results(dataset_name, metrics2run)
         # zero self.metric_results
         if with_metrics:
             self.metric_results = {metric: 0 for metric in self.metric_results}
@@ -300,11 +325,12 @@ class SSRESRGANModel(SRGANModel):
 
             if with_metrics:
                 # calculate metrics
-                for name, opt_ in self.opt['val']['metrics'].items():
+                for name, opt_ in metrics2run.items():
                     self.metric_results[name] += calculate_metric(metric_data, opt_)
             if use_pbar:
                 pbar.update(1)
                 pbar.set_description(f'Test {img_name}')
+
         if use_pbar:
             pbar.close()
 

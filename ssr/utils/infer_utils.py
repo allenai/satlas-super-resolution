@@ -1,10 +1,7 @@
 import torch
 import random
 import skimage.io
-import torchvision
 import numpy as np
-
-totensor = torchvision.transforms.ToTensor()
 
 def format_s2naip_data(s2_data, n_s2_images, device):
     # Reshape to be Tx32x32x3.
@@ -33,8 +30,9 @@ def format_s2naip_data(s2_data, n_s2_images, device):
     s2_chunks = np.array(s2_chunks)
 
     # Convert to torch tensor.
-    s2_chunks = [totensor(img) for img in s2_chunks]
-    s2_tensor = torch.cat(s2_chunks).unsqueeze(0).to(device)
+    s2_chunks = [torch.as_tensor(img).permute(2, 0, 1) for img in s2_chunks]
+    s2_tensor = torch.cat(s2_chunks).unsqueeze(0)
+    s2_tensor = s2_tensor.to(device).float()/255
 
     # Return input of shape [batch, n_s2_images * channels, 32, 32].
     # Also return an S2 image that can be saved for reference.

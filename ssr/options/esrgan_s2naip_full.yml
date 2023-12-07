@@ -48,9 +48,13 @@ datasets:
      io_backend:
        type: disk
 
+test_datasets:
   test:
      name: test
      type: S2NAIPDataset
+
+     phase: test
+     scale: 4
 
      sentinel2_path: super_resolution_2023-12-01/small_val_set/sentinel2
      naip_path: super_resolution_2023-12-01/small_val_set/naip
@@ -148,7 +152,7 @@ val:
    save_img: True
 
    metrics:
-     psnr: # metric name
+     psnr: 
        type: calculate_psnr
        crop_border: 4
        test_y_channel: false
@@ -157,9 +161,29 @@ val:
        crop_border: 4
        test_y_channel: false
 
-# Testing Settings - Validation metrics will be reported and displayed to screen
+# Testing Settings
 test:
   save_img: True
+
+  metrics:
+     psnr:
+       type: calculate_psnr
+       crop_border: 4
+       test_y_channel: false
+     ssim:
+       type: calculate_ssim
+       crop_border: 4
+       test_y_channel: false
+     cpsnr:
+       type: calculate_cpsnr
+       crop_border: 4
+       test_y_channel: false
+     lpips:
+       type: calculate_lpips
+       lpips_model: vgg
+     clipscore:
+       type: calculate_clipscore
+       clip_model: siglip-ViT-SO400M-14  # see ssr/metrics/clipscore.py for currently supported models
 
 # Logging Settings
 logger:

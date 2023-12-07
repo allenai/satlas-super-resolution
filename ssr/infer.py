@@ -3,7 +3,6 @@ import glob
 import torch
 import random
 import argparse
-import torchvision
 import skimage.io
 import numpy as np
 
@@ -44,11 +43,9 @@ if __name__ == "__main__":
     print("Running inference on ", len(pngs), " images.")
 
     for i,png in enumerate(pngs):
-        print("png:", png)
 
         save_dir = os.path.join(save_path, str(i))
         os.makedirs(save_dir, exist_ok=True)
-        print("save dir:", save_dir)
 
         im = skimage.io.imread(png)
 

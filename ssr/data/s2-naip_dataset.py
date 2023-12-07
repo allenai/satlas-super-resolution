@@ -1,19 +1,15 @@
 import os
-import cv2
 import glob
 import torch
 import random
-import skimage.io
 import torchvision
 import numpy as np
 from torch.utils import data as data
 from torch.utils.data import WeightedRandomSampler
-from torchvision.transforms import functional as trans_fn
 
 from basicsr.utils.registry import DATASET_REGISTRY
 
-totensor = torchvision.transforms.ToTensor()
-
+from ssr.utils.data_utils import has_black_pixels
 
 class CustomWeightedRandomSampler(WeightedRandomSampler):
     """
@@ -142,54 +138,53 @@ class S2NAIPDataset(data.Dataset):
             else:
                 naip_path, s2_path = datapoint[0], datapoint[1]
 
-            # Load the 128x128 NAIP chip.
-            naip_chip = skimage.io.imread(naip_path)
+            # Load the 128x128 NAIP chip in as a tensor of shape [channels, height, width].
+            naip_chip = torchvision.io.read_image(naip_path)
 
             # Check for black pixels (almost certainly invalid) and skip if found.
-            if [0, 0, 0] in naip_chip:
+            if has_black_pixels(naip_chip):
                 counter += 1
                 continue
+            img_HR = naip_chip
 
-            # Load the T*32x32 S2 file.
+            # Load the T*32x32 S2 file in as a tensor.
             # There are a few rare cases where loading the Sentinel-2 image fails, skip if found.
             try:
-                s2_images = skimage.io.imread(s2_path)
+                s2_images = torchvision.io.read_image(s2_path)
             except:
                 counter += 1
                 continue
 
-            # Reshape to be Tx32x32.
-            s2_chunks = np.reshape(s2_images, (-1, 32, 32, 3))
+            # Reshape to be Tx3x32x32.
+            s2_chunks = torch.reshape(s2_images, (-1, 3, 32, 32))
 
             # Iterate through the 32x32 chunks at each timestep, separating them into "good" (valid)
             # and "bad" (partially black, invalid). Will use these to pick best collection of S2 images.
             goods, bads = [], []
             for i,ts in enumerate(s2_chunks):
-                if [0, 0, 0] in ts:
+                if has_black_pixels(ts):
                     bads.append(i)
                 else:
                     goods.append(i)
 
-            # Pick 18 random indices of s2 images to use. Skip ones that are partially black.
+            # Pick self.n_s2_images random indices of S2 images to use. Skip ones that are partially black.
             if len(goods) >= self.n_s2_images:
                 rand_indices = random.sample(goods, self.n_s2_images)
             else:
                 need = self.n_s2_images - len(goods)
                 rand_indices = goods + random.sample(bads, need)
+            rand_indices_tensor = torch.as_tensor(rand_indices)
 
-            s2_chunks = [s2_chunks[i] for i in rand_indices]
-            s2_chunks = np.array(s2_chunks)
-            s2_chunks = [totensor(img) for img in s2_chunks]
-            img_HR = totensor(naip_chip)
+            # Extract the self.n_s2_images from the first dimension.
+            img_S2 = s2_chunks[rand_indices_tensor]
 
-            if self.use_3d:
-                img_S2 = torch.stack(s2_chunks)
-            else:
-                img_S2 = torch.cat(s2_chunks)
+            # If using a model that expects 5 dimensions, we will not reshape to 4 dimensions.
+            if not self.use_3d:
+                img_S2 = torch.reshape(img_S2, (-1, 32, 32))
 
             if self.old_naip_path is not None:
-                old_naip_chip = skimage.io.imread(old_naip_path)
-                img_old_HR = totensor(old_naip_chip)
+                old_naip_chip = torchvision.io.read_image(old_naip_path)
+                img_old_HR = old_naip_chip
                 return {'hr': img_HR, 'lr': img_S2, 'old_hr': img_old_HR, 'Index': index}
 
             return {'hr': img_HR, 'lr': img_S2, 'Index': index}

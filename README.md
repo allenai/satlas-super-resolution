@@ -94,6 +94,8 @@ series of Sentinel-2 images. All models are trained to upsample by a factor of 4
    <img src="figures/esrgan_generator.svg" />
 </p>
 
+*The SR3 diffusion model code has lived in a separate repository. We are working to integrate it into this one.*
+
 ## Training
 To train a model on this dataset, run the following command, with the desired configuration file:
 
