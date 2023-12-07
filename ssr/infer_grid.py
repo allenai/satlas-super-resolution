@@ -59,7 +59,7 @@ if __name__ == "__main__":
         output = model(input_tensor)
 
         output = output.squeeze().cpu().detach().numpy()
-        output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
+        output = np.transpose(output * 255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
         skimage.io.imsave(save_fn, output, check_contrast=False)
 
     # Iterate over each tile, stitching together the chunks of the Sentinel-2 image into one big image,
