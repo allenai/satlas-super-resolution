@@ -30,6 +30,8 @@ class CustomWeightedRandomSampler(WeightedRandomSampler):
 @DATASET_REGISTRY.register()
 class S2NAIPDataset(data.Dataset):
     """
+    Dataset object for the S2NAIP data. Builds a list of Sentinel-2 time series and NAIP image pairs.
+
     Args:
         opt (dict): Config for train datasets. It contains the following keys:
             sentinel2_path (str): Data path for Sentinel-2 imagery.
@@ -55,6 +57,11 @@ class S2NAIPDataset(data.Dataset):
         # In the case of the S2NAIP dataset, that means NAIP images from 2016-2018.
         self.old_naip_path = opt['old_naip_path'] if 'old_naip_path' in opt else None
 
+        # Sentinel-2 bands to be used as input. Default to just using tci.
+        self.s2_bands = opt['s2_bands'] if 's2_bands' in opt else ['tci']
+        # Move tci to front of list for later logic.
+        self.s2_bands.insert(0, self.s2_bands.pop(self.s2_bands.index('tci')))
+
         # If a path to older NAIP imagery is provided, build dictionary of each chip:path to png.
         if self.old_naip_path is not None:
             old_naip_chips = {}
@@ -75,27 +82,22 @@ class S2NAIPDataset(data.Dataset):
 
         self.datapoints = []
         for n in self.naip_chips:
-
-            # Extract the X,Y tile from this NAIP image filepath.
+            # Extract the X,Y chip from this NAIP image filepath.
             split_path = n.split('/')
-            chip = split_path[-1][:-4]
-            tile = int(chip.split('_')[0]) // 16, int(chip.split('_')[1]) // 16
+            chip = split_path[-2]
 
             # If old_hr_path is specified, grab an old high-res image (NAIP) for the current datapoint.
             if self.old_naip_path is not None:
                 old_chip = old_naip_chips[chip][0]
 
-            # Now compute the corresponding Sentinel-2 tiles.
-            s2_left_corner = tile[0] * 16, tile[1] * 16
-            diffs = int(chip.split('_')[0]) - s2_left_corner[0], int(chip.split('_')[1]) - s2_left_corner[1]
-
-            s2_path = os.path.join(self.s2_path, str(tile[0])+'_'+str(tile[1]), str(diffs[1])+'_'+str(diffs[0])+'.png')
+            # Gather the filepaths to the Sentinel-2 bands specified in the config.
+            s2_paths = [os.path.join(self.s2_path, chip, band + '.png') for band in self.s2_bands]
 
             # Return the low-res, high-res, and [optionally] older high-res image paths. 
             if self.old_naip_path:
-                self.datapoints.append([n, s2_path, old_chip])
+                self.datapoints.append([n, s2_paths, old_chip])
             else:
-                self.datapoints.append([n, s2_path])
+                self.datapoints.append([n, s2_paths])
 
         self.data_len = len(self.datapoints)
         print("Number of datapoints for split ", self.split, ": ", self.data_len)
@@ -134,9 +136,9 @@ class S2NAIPDataset(data.Dataset):
             datapoint = self.datapoints[index]
 
             if self.old_naip_path:
-                naip_path, s2_path, old_naip_path = datapoint[0], datapoint[1], datapoint[2]
+                naip_path, s2_paths, old_naip_path = datapoint[0], datapoint[1], datapoint[2]
             else:
-                naip_path, s2_path = datapoint[0], datapoint[1]
+                naip_path, s2_paths = datapoint[0], datapoint[1]
 
             # Load the 128x128 NAIP chip in as a tensor of shape [channels, height, width].
             naip_chip = torchvision.io.read_image(naip_path)
@@ -147,21 +149,38 @@ class S2NAIPDataset(data.Dataset):
                 continue
             img_HR = naip_chip
 
-            # Load the T*32x32 S2 file in as a tensor.
+            # Load the T*32x32xC S2 files for each band in as a tensor.
             # There are a few rare cases where loading the Sentinel-2 image fails, skip if found.
             try:
-                s2_images = torchvision.io.read_image(s2_path)
+                s2_tensor = None
+                for i,s2_path in enumerate(s2_paths):
+
+                    # There are tiles where certain bands aren't available, use zero tensors in this case.
+                    if not os.path.exists(s2_path):
+                        img_size = (self.n_s2_images, 3, 32, 32) if 'tci' in s2_path else (self.n_s2_images, 1, 32, 32)
+                        s2_img = torch.zeros(img_size, dtype=torch.uint8)
+                    else:
+                        s2_img = torchvision.io.read_image(s2_path)
+                        s2_img = torch.reshape(s2_img, (-1, s2_img.shape[0], 32, 32))
+
+                    if i == 0:
+                        s2_tensor = s2_img
+                    else:
+                        s2_tensor = torch.cat((s2_tensor, s2_img), dim=1)
             except:
                 counter += 1
                 continue
 
-            # Reshape to be Tx3x32x32.
-            s2_chunks = torch.reshape(s2_images, (-1, 3, 32, 32))
+            # Skip the cases when there are not as many Sentinel-2 images as requested.
+            if s2_tensor.shape[0] < self.n_s2_images:
+                counter += 1
+                continue
 
-            # Iterate through the 32x32 chunks at each timestep, separating them into "good" (valid)
+            # Iterate through the 32x32 tci chunks at each timestep, separating them into "good" (valid)
             # and "bad" (partially black, invalid). Will use these to pick best collection of S2 images.
+            tci_chunks = s2_tensor[:, :3, :, :]
             goods, bads = [], []
-            for i,ts in enumerate(s2_chunks):
+            for i,ts in enumerate(tci_chunks):
                 if has_black_pixels(ts):
                     bads.append(i)
                 else:
@@ -176,7 +195,7 @@ class S2NAIPDataset(data.Dataset):
             rand_indices_tensor = torch.as_tensor(rand_indices)
 
             # Extract the self.n_s2_images from the first dimension.
-            img_S2 = s2_chunks[rand_indices_tensor]
+            img_S2 = s2_tensor[rand_indices_tensor]
 
             # If using a model that expects 5 dimensions, we will not reshape to 4 dimensions.
             if not self.use_3d:

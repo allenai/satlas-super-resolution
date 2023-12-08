@@ -6,4 +6,7 @@ Pillow
 opencv_python
 kornia
 wandb
+lpips
+clip
+open_clip
 basicsr

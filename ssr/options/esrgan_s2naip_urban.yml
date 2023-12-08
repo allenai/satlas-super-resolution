@@ -19,10 +19,10 @@ datasets:
     name: train
     type: SSRDataset
 
-    sentinel2_path: super_resolution_2023-12-01/train_urban_set/sentinel2
-    naip_path: super_resolution_2023-12-01/train_urban_set/naip
+    sentinel2_path: super_resolution_2023-12-08/train_urban_set/sentinel2
+    naip_path: super_resolution_2023-12-08/train_urban_set/naip
 
-    tile_weights: super_resolution_2023-12-01/train_tile_weights/urban_set_weights.json
+    tile_weights: super_resolution_2023-12-08/train_tile_weights/urban_set_weights.json
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
@@ -38,8 +38,8 @@ datasets:
      name: validation
      type: SSRDataset
 
-     sentinel2_path: super_resolution_2023-12-01/small_val_set/sentinel2
-     naip_path: super_resolution_2023-12-01/small_val_set/naip
+     sentinel2_path: super_resolution_2023-12-08/small_val_set/sentinel2
+     naip_path: super_resolution_2023-12-08/small_val_set/naip
 
      use_shuffle: False
 
@@ -56,8 +56,8 @@ test_datasets:
      phase: test
      scale: 4
 
-     sentinel2_path: super_resolution_2023-12-01/small_val_set/sentinel2
-     naip_path: super_resolution_2023-12-01/small_val_set/naip
+     sentinel2_path: super_resolution_2023-12-08/small_val_set/sentinel2
+     naip_path: super_resolution_2023-12-08/small_val_set/naip
 
      use_shuffle: False
 

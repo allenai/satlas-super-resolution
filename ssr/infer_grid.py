@@ -38,8 +38,8 @@ if __name__ == "__main__":
         model.load_state_dict(state_dict[opt['path']['param_key_g']], strict=opt['path']['strict_load_g'])
     model = model.to(device).eval()
 
-    # The images in the data_dir should be in the same format as the satlas-super-resolution 
-    # validation set: {data_dir}/sentinel2/1234_5678/X_Y.png where X_Y.png is of shape [n_s2_images * 32, 32, 3].
+    # The images in the data_dir for inference should be pngs and the directory structure should look
+    # like: {data_dir}/sentinel2/{subdir}/*.png where each png is of shape [n_s2_images * 32, 32, 3].
     pngs = glob.glob(data_dir + "*/*.png")
     print("Running inference on ", len(pngs), " images.")
 

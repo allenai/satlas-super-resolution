@@ -9,7 +9,7 @@ manual_seed: 0
 
 # Root directory for low-res images you want super-resolved.
 # This can be in any directory structures, but the code expects pngs.
-data_dir: super_resolution_2023-12-01/test_set/sentinel2/
+data_dir: super_resolution_2023-12-08/test_set/sentinel2/
 
 n_lr_images: 8
 
