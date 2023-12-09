@@ -145,15 +145,6 @@ train:
     real_label_val: 1.0
     fake_label_val: 0.0
     loss_weight: !!float 1e-1
-  # CLIP similarity loss
-  clip_opt:
-    type: CLIPLoss
-    clip_loss_model: ViT-B-16-SigLIP-256
-    loss_weight: !!float 1.0
-  # SSIM loss
-  ssim_opt:
-    type: SSIMLoss
-    loss_weight: !!float 1e-2
 
   net_d_iters: 1
   net_d_init_iters: 0

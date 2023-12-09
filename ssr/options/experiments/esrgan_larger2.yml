@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_larger1
+name: esrgan_larger2
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -74,14 +74,14 @@ network_g:
   type: SSR_RRDBNet
   num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
-  num_feat: 128
+  num_feat: 256
   num_block: 23
-  num_grow_ch: 64
+  num_grow_ch: 128
 
 network_d:
   type: SSR_UNetDiscriminatorSN
   num_in_ch: 27  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
-  num_feat: 128
+  num_feat: 256
   skip_connection: True
 
 # Load in existing weights to the generator and discriminator
