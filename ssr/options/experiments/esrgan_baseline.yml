@@ -160,7 +160,7 @@ train:
 
 # Validation Settings
 val:
-   val_freq: 50 #!!float 5e3
+   val_freq: !!float 5e5
    save_img: True
 
    metrics:
@@ -199,7 +199,7 @@ test:
 
 # Logging Settings
 logger:
-  print_freq: 100
+  print_freq: 1000
   save_checkpoint_freq: !!float 5e3 
   use_tb_logger: true
   wandb:
