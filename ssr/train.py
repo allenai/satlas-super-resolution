@@ -9,15 +9,44 @@ from basicsr.data.data_sampler import EnlargedSampler
 from basicsr.data.prefetch_dataloader import CPUPrefetcher, CUDAPrefetcher
 from basicsr.models import build_model
 from basicsr.utils import (AvgTimer, MessageLogger, check_resume, get_env_info, get_root_logger, get_time_str,
-                           init_tb_logger, init_wandb_logger, make_exp_dirs, mkdir_and_rename, scandir)
-from basicsr.train import load_resume_state, create_train_val_dataloader, init_tb_loggers
+                           init_tb_logger, init_wandb_logger, scandir)
+from basicsr.train import create_train_val_dataloader, init_tb_loggers
 from basicsr.utils.options import copy_opt_file, dict2str
 
 import ssr.archs
 import ssr.data
 import ssr.models
 from ssr.utils.options import parse_options
+from ssr.utils.misc import mkdir_and_rename, make_exp_dirs
 
+import sys
+if not sys.warnoptions:
+    import warnings
+    warnings.simplefilter("ignore") # Change the filter in this process
+    os.environ["PYTHONWARNINGS"] = "ignore" # Also affect subprocesses
+
+def load_resume_state(opt):
+    resume_state_path = None
+    if opt['auto_resume']:
+        state_path = os.path.join(opt['path']['experiments_root'], 'training_states')
+        if os.path.isdir(state_path):
+            states = list(scandir(state_path, suffix='state', recursive=False, full_path=False))
+            if len(states) != 0:
+                states = [float(v.split('.state')[0]) for v in states]
+                resume_state_path = os.path.join(state_path, f'{max(states):.0f}.state')
+                opt['path']['resume_state'] = resume_state_path
+    else:
+        if opt['path'].get('resume_state'):
+            resume_state_path = opt['path']['resume_state']
+
+    print("Resuming from the state path:", resume_state_path)
+    if resume_state_path is None:
+        resume_state = None
+    else:
+        device_id = torch.cuda.current_device()
+        resume_state = torch.load(resume_state_path, map_location=lambda storage, loc: storage.cuda(device_id))
+        check_resume(opt, resume_state['iter'])
+    return resume_state
 
 def train_pipeline(root_path):
     # parse options, set distributed setting, set random seed

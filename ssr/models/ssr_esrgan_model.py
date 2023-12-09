@@ -10,6 +10,7 @@ from collections import OrderedDict
 from basicsr.archs import build_network
 from basicsr.models.srgan_model import SRGANModel
 from basicsr.utils import USMSharp, get_root_logger, imwrite, tensor2img
+from basicsr.utils.dist_util import master_only
 from basicsr.utils.registry import MODEL_REGISTRY
 
 from ssr.losses import build_loss
@@ -342,3 +343,53 @@ class SSRESRGANModel(SRGANModel):
 
             self._log_validation_metric_values(current_iter, dataset_name, tb_logger)
 
+    @master_only
+    def save_network(self, net, net_label, current_iter, param_key='params'):
+        """Save networks.
+
+        Args:
+            net (nn.Module | list[nn.Module]): Network(s) to be saved.
+            net_label (str): Network label.
+            current_iter (int): Current iter number.
+            param_key (str | list[str]): The parameter key(s) to save network.
+                Default: 'params'.
+        """
+        if current_iter == -1:
+            current_iter = 'latest'
+        save_filename = f'{net_label}_{current_iter}.pth'
+        save_path = os.path.join(self.opt['path']['models'], save_filename)
+
+        print("path models:", self.opt['path']['models'])
+        print("trying to save to ...", save_path)
+
+        net = net if isinstance(net, list) else [net]
+        param_key = param_key if isinstance(param_key, list) else [param_key]
+        assert len(net) == len(param_key), 'The lengths of net and param_key should be the same.'
+
+        save_dict = {}
+        for net_, param_key_ in zip(net, param_key):
+            net_ = self.get_bare_model(net_)
+            state_dict = net_.state_dict()
+            for key, param in state_dict.items():
+                if key.startswith('module.'):  # remove unnecessary 'module.'
+                    key = key[7:]
+                state_dict[key] = param.cpu()
+            save_dict[param_key_] = state_dict
+
+        # avoid occasional writing errors
+        retry = 3
+        while retry > 0:
+            try:
+                print("torch.saving ... ")
+                torch.save(save_dict, save_path)
+            except Exception as e:
+                logger = get_root_logger()
+                logger.warning(f'Save model error: {e}, remaining retry times: {retry - 1}')
+                time.sleep(1)
+            else:
+                break
+            finally:
+                retry -= 1
+        if retry == 0:
+            logger.warning(f'Still cannot save {save_path}. Just ignore it.')
+            # raise IOError(f'Cannot save {save_path}.')
