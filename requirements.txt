@@ -8,5 +8,5 @@ kornia
 wandb
 lpips
 clip
-open_clip
+open_clip_torch
 basicsr
