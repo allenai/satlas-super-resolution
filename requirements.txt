@@ -6,7 +6,7 @@ Pillow
 opencv_python
 kornia
 wandb
-yaml
+PyYAML
 lpips
 clip
 open_clip_torch
