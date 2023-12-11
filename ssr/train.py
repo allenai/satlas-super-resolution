@@ -18,6 +18,13 @@ import ssr.data
 import ssr.models
 from ssr.utils.options import parse_options
 
+# Ignore the torchvision deprecation warning that depends on the basicsr package.
+# Remove once this bug is fixed in basicsr.
+import sys
+if not sys.warnoptions:
+    import warnings
+    warnings.simplefilter("ignore") # Change the filter in this process
+    os.environ["PYTHONWARNINGS"] = "ignore" # Also affect subprocesses
 
 def train_pipeline(root_path):
     # parse options, set distributed setting, set random seed
