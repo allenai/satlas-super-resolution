@@ -1,13 +1,12 @@
+basicsr
+lpips
 numpy
 scikit-image
-torch
-torchvision
 Pillow
 opencv_python
 kornia
 wandb
-PyYAML
-lpips
 clip
 open_clip_torch
-basicsr
+torch
+torchvision
