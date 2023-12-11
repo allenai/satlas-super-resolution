@@ -1,4 +1,4 @@
-basicsr
+basicsr==1.4.2
 lpips
 numpy
 scikit-image
@@ -8,5 +8,5 @@ kornia
 wandb
 clip
 open_clip_torch
-torch
-torchvision
+torch==2.1.1
+torchvision==0.16.1
