@@ -11,6 +11,8 @@ from basicsr.utils.registry import DATASET_REGISTRY
 
 from ssr.utils.data_utils import has_black_pixels
 
+random.seed(123)
+
 class CustomWeightedRandomSampler(WeightedRandomSampler):
     """
     WeightedRandomSampler except allows for more than 2^24 samples to be sampled.
@@ -79,6 +81,10 @@ class S2NAIPDataset(data.Dataset):
             raise Exception("Please make sure the paths to the data directories are correct.")
 
         self.naip_chips = glob.glob(self.naip_path + '/**/*.png', recursive=True)
+
+        # Reduce the training set down to a specified number of samples. If not specified, whole set is used.
+        if 'train_samples' in opt and self.split == 'train':
+            self.naip_chips = random.sample(self.naip_chips, opt['train_samples'])
 
         self.datapoints = []
         for n in self.naip_chips:
