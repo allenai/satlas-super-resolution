@@ -1,4 +1,5 @@
 import os
+import json
 import glob
 import torch
 import random
@@ -48,6 +49,8 @@ class S2NAIPDataset(data.Dataset):
         self.opt = opt
 
         self.split = opt['phase']
+        train = True if self.split == 'train' else False
+
         self.n_s2_images = int(opt['n_s2_images'])
         self.scale = int(opt['scale'])
 
@@ -58,6 +61,9 @@ class S2NAIPDataset(data.Dataset):
         # Path to high-res images of older timestamps and corresponding locations to training data.
         # In the case of the S2NAIP dataset, that means NAIP images from 2016-2018.
         self.old_naip_path = opt['old_naip_path'] if 'old_naip_path' in opt else None
+
+        # Path to osm_chips_to_masks.json if provided. 
+        self.osm_chips_to_masks = opt['osm_objs_path'] if 'osm_objs_path' in opt else None
 
         # Sentinel-2 bands to be used as input. Default to just using tci.
         self.s2_bands = opt['s2_bands'] if 's2_bands' in opt else ['tci']
@@ -74,6 +80,13 @@ class S2NAIPDataset(data.Dataset):
                     old_naip_chips[old_chip] = []
                 old_naip_chips[old_chip].append(old_naip)
 
+        # If a path to osm_chips_to_masks.json is provided, we want to filter out datapoints where
+        # there is not at least n_osm_objs objects in the NAIP image.
+        osm_obj_data = {}
+        if self.osm_chips_to_masks is not None and train:
+            osm_obj_data = json.load(open(self.osm_chips_to_masks))
+            print("Loaded osm_chip_to_masks.json with ", len(osm_obj_data), " entries.")
+
         # Paths to Sentinel-2 and NAIP imagery.
         self.s2_path = opt['sentinel2_path']
         self.naip_path = opt['naip_path']
@@ -83,7 +96,7 @@ class S2NAIPDataset(data.Dataset):
         self.naip_chips = glob.glob(self.naip_path + '/**/*.png', recursive=True)
 
         # Reduce the training set down to a specified number of samples. If not specified, whole set is used.
-        if 'train_samples' in opt and self.split == 'train':
+        if 'train_samples' in opt and train:
             self.naip_chips = random.sample(self.naip_chips, opt['train_samples'])
 
         self.datapoints = []
@@ -96,14 +109,18 @@ class S2NAIPDataset(data.Dataset):
             if self.old_naip_path is not None:
                 old_chip = old_naip_chips[chip][0]
 
+            # If using OSM Object ESRGAN, filter dataset to only include images containing OpenStreetMap objects.
+            if train and not (chip in osm_obj_data and sum([len(osm_obj_data[chip][k]) for k in osm_obj_data[chip].keys()]) >= opt['n_osm_objs']):
+                continue
+
             # Gather the filepaths to the Sentinel-2 bands specified in the config.
             s2_paths = [os.path.join(self.s2_path, chip, band + '.png') for band in self.s2_bands]
 
-            # Return the low-res, high-res, and [optionally] older high-res image paths. 
+            # Return the low-res, high-res, chip (ex. 12345_67890), and [optionally] older high-res image paths. 
             if self.old_naip_path:
-                self.datapoints.append([n, s2_paths, old_chip])
+                self.datapoints.append([n, s2_paths, chip, old_chip])
             else:
-                self.datapoints.append([n, s2_paths])
+                self.datapoints.append([n, s2_paths, chip])
 
         self.data_len = len(self.datapoints)
         print("Number of datapoints for split ", self.split, ": ", self.data_len)
@@ -142,9 +159,9 @@ class S2NAIPDataset(data.Dataset):
             datapoint = self.datapoints[index]
 
             if self.old_naip_path:
-                naip_path, s2_paths, old_naip_path = datapoint[0], datapoint[1], datapoint[2]
+                naip_path, s2_paths, zoom17_tile, old_naip_path = datapoint[0], datapoint[1], datapoint[2], datapoint[3]
             else:
-                naip_path, s2_paths = datapoint[0], datapoint[1]
+                naip_path, s2_paths, zoom17_tile = datapoint[0], datapoint[1], datapoint[2]
 
             # Load the 128x128 NAIP chip in as a tensor of shape [channels, height, width].
             naip_chip = torchvision.io.read_image(naip_path)
@@ -210,9 +227,9 @@ class S2NAIPDataset(data.Dataset):
             if self.old_naip_path is not None:
                 old_naip_chip = torchvision.io.read_image(old_naip_path)
                 img_old_HR = old_naip_chip
-                return {'hr': img_HR, 'lr': img_S2, 'old_hr': img_old_HR, 'Index': index}
+                return {'hr': img_HR, 'lr': img_S2, 'old_hr': img_old_HR, 'Index': index, 'Phase': self.split, 'Chip': zoom17_tile}
 
-            return {'hr': img_HR, 'lr': img_S2, 'Index': index}
+            return {'hr': img_HR, 'lr': img_S2, 'Index': index, 'Phase': self.split, 'Chip': zoom17_tile}
 
     def __len__(self):
         return self.data_len
