@@ -82,7 +82,6 @@ class S2NAIPDataset(data.Dataset):
 
         # If a path to osm_chips_to_masks.json is provided, we want to filter out datapoints where
         # there is not at least n_osm_objs objects in the NAIP image.
-        osm_obj_data = {}
         if self.osm_chips_to_masks is not None and train:
             osm_obj_data = json.load(open(self.osm_chips_to_masks))
             print("Loaded osm_chip_to_masks.json with ", len(osm_obj_data), " entries.")
@@ -110,8 +109,9 @@ class S2NAIPDataset(data.Dataset):
                 old_chip = old_naip_chips[chip][0]
 
             # If using OSM Object ESRGAN, filter dataset to only include images containing OpenStreetMap objects.
-            if train and not (chip in osm_obj_data and sum([len(osm_obj_data[chip][k]) for k in osm_obj_data[chip].keys()]) >= opt['n_osm_objs']):
-                continue
+            if self.osm_chips_to_masks is not None and train:
+                if not (chip in osm_obj_data and sum([len(osm_obj_data[chip][k]) for k in osm_obj_data[chip].keys()]) >= opt['n_osm_objs']):
+                    continue
 
             # Gather the filepaths to the Sentinel-2 bands specified in the config.
             s2_paths = [os.path.join(self.s2_path, chip, band + '.png') for band in self.s2_bands]
