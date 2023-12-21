@@ -1,5 +1,10 @@
 # Satlas Super Resolution
 
+[!NOTE] 
+This `experiments` branch will ultimately contain all config files needed to replicate results from the paper, including experiments
+on the WorldStrat, OLI2MSI, PROBA-V, Sen2VENUS, and MuS2 datasets (along with our S2-NAIP dataset). 
+The `main` branch will be more stable, with less commits and only a handful of example config files.
+
 [Satlas](https://satlas.allen.ai/) aims to provide open AI-generated geospatial data that is highly accurate, available globally, 
 and updated on a frequent (monthly) basis. One of the data applications in Satlas is globally generated 
 **Super-Resolution** imagery for 2023. 
