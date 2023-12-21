@@ -1,0 +1,120 @@
+# General Settings
+name: worldstrat_highresnet
+model_type: L2Model
+scale: 4
+num_gpu: auto
+manual_seed: 0
+
+# Dataset and Dataloader Settings
+datasets:
+  train:
+    name: train
+    type: WorldStratDataset
+
+    # Paths to Sentinel-2 and HR imagery.
+    lr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
+    hr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
+    splits_csv: /data/piperw/data/worldstrat/dataset/stratified_train_val_test_split.csv
+
+    use_shuffle: True  # shuffle MUST be False if using tile_weights
+
+    use_3d: True
+
+    num_worker_per_gpu: 8
+    batch_size_per_gpu: 2
+
+    n_s2_images: 8
+
+    io_backend:
+      type: disk
+
+  val:
+     name: validation
+     type: WorldStratDataset
+
+     # Paths to Sentinel-2 and HR imagery.
+     lr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
+     hr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
+     splits_csv: /data/piperw/data/worldstrat/dataset/stratified_train_val_test_split.csv
+
+     use_shuffle: False
+
+     use_3d: True 
+
+     n_s2_images: 8
+
+     io_backend:
+       type: disk
+
+# Network Structure
+network_g:
+  type: HighResNet
+  in_channels: 3
+  mask_channels: 0 
+  hidden_channels: 128
+  out_channels: 3
+  kernel_size: 3
+  residual_layers: 1
+  output_size: 640
+  revisits: 8
+  zoom_factor: 4
+  sr_kernel_size: 1
+
+# Load in existing weights to the generator and discriminator.
+# Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
+path:
+  #pretrain_network_g: experiments/models/sample_net_g.pth
+  param_key_g: params
+  strict_load_g: false
+  resume_state: ~
+
+# Training Settings
+train:
+  optim_g:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: MultiStepLR
+    milestones: [400000]
+    gamma: 0.5
+
+  total_iter: 100000000
+  warmup_iter: -1  # no warm up
+
+  # Losses
+  pixel_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+
+# Validation Settings
+val:
+   val_freq: !!float 5e3
+   save_img: True
+
+   metrics:
+     psnr: # metric name
+       type: calculate_psnr
+       crop_border: 4
+       test_y_channel: false
+     ssim:
+       type: calculate_ssim
+       crop_border: 4
+       test_y_channel: false
+
+# Logging Settings
+logger:
+  print_freq: 1000
+  save_checkpoint_freq: !!float 5e3 
+  use_tb_logger: true
+  wandb:
+    project: multisat
+    resume_id: ~
+
+# Dist Training Settings
+dist_params:
+  backend: nccl
+  port: 29500

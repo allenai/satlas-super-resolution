@@ -1,0 +1,160 @@
+# General Settings
+name: worldstrat_esrgan
+model_type: SSRESRGANModel
+scale: 4
+num_gpu: auto
+manual_seed: 0
+
+# USM the Ground-Truth
+l1_gt_usm: True
+percep_gt_usm: True
+gan_gt_usm: False
+
+# Whether or not to feed the discriminator Sentinel-2 images.
+feed_disc_lr: True
+
+# Dataset and Dataloader Settings
+datasets:
+  train:
+    name: train
+    type: WorldStratDataset
+
+    # Paths to Sentinel-2 and HR imagery.
+    lr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
+    hr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
+    splits_csv: /data/piperw/data/worldstrat/dataset/stratified_train_val_test_split.csv
+
+    use_shuffle: True  # shuffle MUST be False if using tile_weights
+
+    num_worker_per_gpu: 8
+    batch_size_per_gpu: 2
+
+    n_s2_images: 8
+
+    io_backend:
+      type: disk
+
+  val:
+     name: validation
+     type: WorldStratDataset
+
+     # Paths to Sentinel-2 and HR imagery.
+     lr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
+     hr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
+     splits_csv: /data/piperw/data/worldstrat/dataset/stratified_train_val_test_split.csv
+
+     use_shuffle: False
+
+     n_s2_images: 8
+
+     io_backend:
+       type: disk
+
+# Network Structures
+network_g:
+  type: SSR_RRDBNet
+  num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
+  num_out_ch: 3
+  num_feat: 128
+  num_block: 23
+  num_grow_ch: 32
+
+network_d:
+  type: SSR_UNetDiscriminatorSN
+  num_in_ch: 27  # real/fake input + old naip image * 3 channels (RGB) + S2 images * num_bands, depending what's specified
+  num_feat: 128
+  skip_connection: True
+
+# Load in existing weights to the generator and discriminator.
+# Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
+path:
+  #pretrain_network_g: weights/satlas32_rrdbnet_last.pth
+  param_key_g: params
+  strict_load_g: false
+  #pretrain_network_d:
+  param_key_d: params
+  strict_load_d: true
+  resume_state: ~
+
+# Training Settings
+train:
+  ema_decay: 0.999
+  optim_g:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+  optim_d:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: MultiStepLR
+    milestones: [400000]
+    gamma: 0.5
+
+  total_iter: 100000000
+  warmup_iter: -1  # no warm up
+
+  # Losses
+  pixel_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+  # Perceptual Loss (content and style losses)
+  perceptual_opt:
+    type: PerceptualLoss
+    layer_weights:
+      # before relu
+      'conv1_2': 0.1
+      'conv2_2': 0.1
+      'conv3_4': 1
+      'conv4_4': 1
+      'conv5_4': 1
+    vgg_type: vgg19
+    use_input_norm: true
+    perceptual_weight: !!float 1.0
+    style_weight: 0
+    range_norm: false
+    criterion: l1
+  # GAN Loss
+  gan_opt:
+    type: GANLoss
+    gan_type: vanilla
+    real_label_val: 1.0
+    fake_label_val: 0.0
+    loss_weight: !!float 1e-1
+
+  net_d_iters: 1
+  net_d_init_iters: 0
+
+# Validation Settings
+val:
+   val_freq: !!float 5e3
+   save_img: True
+
+   metrics:
+     psnr: # metric name
+       type: calculate_psnr
+       crop_border: 4
+       test_y_channel: false
+     ssim:
+       type: calculate_ssim
+       crop_border: 4
+       test_y_channel: false
+
+# Logging Settings
+logger:
+  print_freq: 1000
+  save_checkpoint_freq: !!float 5e3 
+  use_tb_logger: true
+  wandb:
+    project: multisat
+    resume_id: ~
+
+# Dist Training Settings
+dist_params:
+  backend: nccl
+  port: 29500

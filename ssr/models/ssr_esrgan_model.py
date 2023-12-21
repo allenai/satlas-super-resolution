@@ -359,9 +359,6 @@ class SSRESRGANModel(SRGANModel):
         save_filename = f'{net_label}_{current_iter}.pth'
         save_path = os.path.join(self.opt['path']['models'], save_filename)
 
-        print("path models:", self.opt['path']['models'])
-        print("trying to save to ...", save_path)
-
         net = net if isinstance(net, list) else [net]
         param_key = param_key if isinstance(param_key, list) else [param_key]
         assert len(net) == len(param_key), 'The lengths of net and param_key should be the same.'
@@ -380,7 +377,7 @@ class SSRESRGANModel(SRGANModel):
         retry = 3
         while retry > 0:
             try:
-                print("torch.saving ... ")
+                print("Saving model weights to...", save_path)
                 torch.save(save_dict, save_path)
             except Exception as e:
                 logger = get_root_logger()

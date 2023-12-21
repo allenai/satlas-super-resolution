@@ -1,5 +1,5 @@
 # General Settings
-name: highresnet_s2naip_urban
+name: srcnn_s2naip
 model_type: L2Model
 scale: 4
 num_gpu: auto
@@ -11,10 +11,10 @@ datasets:
     name: train
     type: S2NAIPDataset
 
-    sentinel2_path: super_resolution_2023-12-08/train_urban_set/sentinel2
-    naip_path: super_resolution_2023-12-08/train_urban_set/naip
+    sentinel2_path:  /data/piperw/data/ssr_data/train_urban_set/sentinel2
+    naip_path:  /data/piperw/data/ssr_data/train_urban_set/naip
 
-    tile_weights: super_resolution_2023-12-08/train_tile_weights/urban_set_weights.json
+    tile_weights:  /data/piperw/data/ssr_data/train_tile_weights/urban_set_weights.json
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
@@ -32,8 +32,8 @@ datasets:
      name: validation
      type: S2NAIPDataset
 
-     sentinel2_path: super_resolution_2023-12-08/small_val_set/sentinel2
-     naip_path: super_resolution_2023-12-08/small_val_set/naip
+     sentinel2_path:  /data/piperw/data/ssr_data/small_val_set/sentinel2
+     naip_path:  /data/piperw/data/ssr_data/small_val_set/naip
 
      use_shuffle: False
 
@@ -52,8 +52,8 @@ test_datasets:
      phase: test
      scale: 4
 
-     sentinel2_path: super_resolution_2023-12-08/small_val_set/sentinel2
-     naip_path: super_resolution_2023-12-08/small_val_set/naip
+     sentinel2_path: /data/piperw/data/ssr_data/small_val_set/sentinel2
+     naip_path: /data/piperw/data/ssr_data/small_val_set/naip
 
      use_shuffle: False
 
@@ -66,14 +66,14 @@ test_datasets:
 
 # Network Structure
 network_g:
-  type: HighResNet
+  type: SRCNN
   in_channels: 3
-  mask_channels: 0
+  mask_channels: 0 
   hidden_channels: 128
   out_channels: 3
   kernel_size: 3
   residual_layers: 1
-  output_size: 128,128
+  output_size: 128
   revisits: 8
   zoom_factor: 4
   sr_kernel_size: 1
@@ -125,7 +125,7 @@ val:
 
 # Testing Settings
 test:
-  save_img: True 
+  save_img: True
 
   metrics:
      psnr:
