@@ -95,6 +95,8 @@ path:
   strict_load_d: true
   resume_state: ~
 
+  experiments_root: /results/experiments/
+
 # Training Settings
 train:
   ema_decay: 0.999
