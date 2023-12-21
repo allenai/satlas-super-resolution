@@ -1,7 +1,7 @@
 # General Settings
-name: worldstrat_esrgan
+name: oli2msi_esrgan
 model_type: SSRESRGANModel
-scale: 4
+scale: 3
 num_gpu: auto
 manual_seed: 0
 
@@ -17,35 +17,29 @@ feed_disc_lr: True
 datasets:
   train:
     name: train
-    type: WorldStratDataset
+    type: OLI2MSIDataset
 
-    # Paths to Sentinel-2 and HR imagery.
-    lr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
-    hr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
-    splits_csv: /data/piperw/data/worldstrat/dataset/stratified_train_val_test_split.csv
+    data_root: /data/piperw/data/OLI2MSI/
 
     use_shuffle: True  # shuffle MUST be False if using tile_weights
 
     num_worker_per_gpu: 8
     batch_size_per_gpu: 2
 
-    n_s2_images: 8
+    n_s2_images: 1
 
     io_backend:
       type: disk
 
   val:
      name: validation
-     type: WorldStratDataset
+     type: OLI2MSIDataset
 
-     # Paths to Sentinel-2 and HR imagery.
-     lr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
-     hr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
-     splits_csv: /data/piperw/data/worldstrat/dataset/stratified_train_val_test_split.csv
+     data_root: /data/piperw/data/OLI2MSI/
 
      use_shuffle: False
 
-     n_s2_images: 8
+     n_s2_images: 1
 
      io_backend:
        type: disk
@@ -53,15 +47,16 @@ datasets:
 # Network Structures
 network_g:
   type: SSR_RRDBNet
-  num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
+  num_in_ch: 3  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
   num_feat: 64
   num_block: 23
   num_grow_ch: 32
+  scale: 3
 
 network_d:
   type: SSR_UNetDiscriminatorSN
-  num_in_ch: 27  # real/fake input + old naip image * 3 channels (RGB) + S2 images * num_bands, depending what's specified
+  num_in_ch: 6  # real/fake input + old naip image * 3 channels (RGB) + S2 images * num_bands, depending what's specified
   num_feat: 64
   skip_connection: True
 

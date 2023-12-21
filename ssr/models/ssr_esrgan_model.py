@@ -31,6 +31,8 @@ class SSRESRGANModel(SRGANModel):
         super(SSRESRGANModel, self).__init__(opt)
         self.usm_sharpener = USMSharp().cuda()
 
+        self.scale = opt['scale']
+
     def init_training_settings(self):
         train_opt = self.opt['train']
 
@@ -131,7 +133,7 @@ class SSRESRGANModel(SRGANModel):
 
         # Upsample the low-res input images to that of the ground truth so they can be stacked.
         lr_shp = self.lr.shape
-        lr_resized = F.interpolate(self.lr, scale_factor=4)
+        lr_resized = F.interpolate(self.lr, scale_factor=self.scale)
 
         # optimize net_g
         for p in self.net_d.parameters():
