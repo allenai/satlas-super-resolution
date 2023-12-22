@@ -87,10 +87,10 @@ network_d:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  pretrain_network_g: /data/piperw/data/ssr_data/weights/net_g_35000.pth
+  pretrain_network_g: /data/piperw/data/ssr_data/weights/net_g_435000.pth
   param_key_g: params_ema
   strict_load_g: true
-  pretrain_network_d: /data/piperw/data/ssr_data/weights/net_d_35000.pth
+  pretrain_network_d: /data/piperw/data/ssr_data/weights/net_d_435000.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~
