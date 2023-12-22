@@ -73,7 +73,7 @@ network_g:
   out_channels: 3
   kernel_size: 3
   residual_layers: 1
-  output_size: 128,128
+  output_size: 128
   revisits: 8
   zoom_factor: 4
   sr_kernel_size: 1

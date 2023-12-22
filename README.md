@@ -82,8 +82,10 @@ In each set, there is a `naip` folder containing images in this format: `naip/{i
 the image's unique identifier with the capture timestamp, and tile refers to its location in a 2^17 x 2^17 Web-Mercator grid (ex. 12345_67890). 
 
 ### Sentinel-2
-We use the Sentinel-2 L1C imagery with preprocessing detailed [here](https://github.com/allenai/satlas/blob/main/Normalization.md#sentinel-2-images).
-Most experiments utilize just the TCI bands.
+We use the Sentinel-2 L1C imagery. 
+Models that input 3 bands use the TCI file provided by ESA. This contains an 8-bit image that has been normalized by ESA to the 0-255 range. 
+The image is normalized for input to the model by dividing the 0-255 RGB values by 255, and retaining the RGB order.
+Most experiments utilize just TCI, but for non-TCI bands, the 16-bit source data is divided by 8160 and clipped to 0-1.
 
 For each NAIP image, there is a time series of corresponding 32x32px Sentinel-2 images. These time series are saved as pngs in the 
 shape, `[number_sentinel2_images * 32, 32, 3]`. Before running this data through the models, the data is reshaped to
