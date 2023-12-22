@@ -6,7 +6,6 @@ Pillow
 opencv_python
 kornia
 wandb
-gdal
 git+https://github.com/openai/CLIP.git
 open_clip_torch
 torch==2.1.0
