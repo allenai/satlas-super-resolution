@@ -48,7 +48,6 @@ datasets:
      naip_path: /data/piperw/data/ssr_data/small_val_set/naip
 
      old_naip_path: /data/piperw/data/ssr_data/old_naip/
-
      use_shuffle: False
 
      n_s2_images: 8
@@ -93,7 +92,9 @@ network_d:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  pretrain_network_g: /data/piperw/data/ssr_data/satlas32_rrdbnet_last.pth
+  #pretrain_network_g: experiments/sample_net_g.pth 
+  param_key_g: params_ema
+  strict_load_g: true
   #pretrain_network_g: experiments/sample_net_g.pth 
   param_key_g: params_ema
   strict_load_g: false
