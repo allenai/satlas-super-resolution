@@ -3,35 +3,47 @@ Adapted from: https://github.com/XPixelGroup/BasicSR/blob/master/basicsr/models/
 Authors: XPixelGroup
 """
 import os
+import json
 import torch
+import random
+import torchvision
 import torch.nn.functional as F
 from collections import OrderedDict
 
 from basicsr.archs import build_network
 from basicsr.models.srgan_model import SRGANModel
 from basicsr.utils import USMSharp, get_root_logger, imwrite, tensor2img
-from basicsr.utils.dist_util import master_only
 from basicsr.utils.registry import MODEL_REGISTRY
 
 from ssr.losses import build_loss
 from ssr.metrics import calculate_metric
 
-@MODEL_REGISTRY.register()
-class SSRESRGANModel(SRGANModel):
-    """
-    SSR ESRGAN Model: Satellite imagery super-resolution model based on the Real-ESRGAN architecture.
 
-    The input to the generator is a time series of low-res images, and it learns to generate
-    a higher resolution image. The discriminator then sees the generated images and GT images,
-    with the optional additional input of an older high-res image and the same low-res images
-    that the generator receives.
+@MODEL_REGISTRY.register()
+class OSMObjESRGANModel(SRGANModel):
+    """
+    SSR ESRGAN Model: Training Satellite Imagery Super Resolution with Paired Training Data.
+
+    The input to the generator is a time series of Sentinel-2 images, and it learns to generate
+    a higher resolution image. The discriminator then sees the generated images and NAIP images. 
+
+    Additionally, this version of the model includes an object discriminator loss, that looks at
+    extracted image chunks, based on OpenStreetMap objects. The model looks at each of these objects
+    and predicts real/fake - the aggregate of these predictions is integrated into the standard
+    GAN losses. This model requires the path to the osm_chips_to_masks.json file to be in the config.
     """
 
     def __init__(self, opt):
-        super(SSRESRGANModel, self).__init__(opt)
+        super(OSMObjESRGANModel, self).__init__(opt)
         self.usm_sharpener = USMSharp().cuda()
 
-        self.scale = opt['scale']
+        # Load in the big json containing maps from chips to OSM object bounds.
+        osm_file = open(opt['datasets']['train']['osm_objs_path'])
+        self.osm_obj_data = json.load(osm_file)
+
+        # OSM Obj ESRGAN-specific config arguments.
+        self.osm_obj_weight = opt['osm_obj_weight']
+        self.n_osm_objs = opt['datasets']['train']['n_osm_objs']
 
     def init_training_settings(self):
         train_opt = self.opt['train']
@@ -119,6 +131,12 @@ class SSRESRGANModel(SRGANModel):
         # Feed discriminator the same low-res images that the generator receives.
         self.feed_disc_lr = True if ('feed_disc_lr' in self.opt and self.opt['feed_disc_lr']) else False
 
+        # List of dictionaries of objects for each chip in this batch. Only for training.
+        if data['Phase'][0] == 'train':
+            self.chip_objs = [self.osm_obj_data[data['Chip'][c]] for c in range(len(data['Chip']))]
+        else:
+            self.chip_objs = []
+
     def optimize_parameters(self, current_iter):
         # usm sharpening
         l1_gt = self.gt_usm
@@ -133,7 +151,7 @@ class SSRESRGANModel(SRGANModel):
 
         # Upsample the low-res input images to that of the ground truth so they can be stacked.
         lr_shp = self.lr.shape
-        lr_resized = F.interpolate(self.lr, scale_factor=self.scale)
+        lr_resized = F.interpolate(self.lr, scale_factor=4)
 
         # optimize net_g
         for p in self.net_d.parameters():
@@ -141,6 +159,45 @@ class SSRESRGANModel(SRGANModel):
 
         self.optimizer_g.zero_grad()
         self.output = self.net_g(self.lr)
+
+        # Extract OSM objects in this chip and resize them to standard size.
+        gt_extracted_objs = []
+        gen_extracted_objs = []
+        for b in range(gan_gt.shape[0]):
+            batch_gt, batch_gen = [], []
+            for k,v in self.chip_objs[b].items():
+                for i,o in enumerate(v):
+                    x1, y1, x2, y2 = o
+
+                    # Account for some edge cases that should've been handled in preprocessing script...
+                    if x1 == x2:
+                        x1, x2 = (x1, x2+1) if x2 < 128 else (x1-1, x2)
+                    if y1 == y2:
+                        y1, y2 = (y1, y2+1) if y2 < 128 else (y1-1, y2)
+
+                    gt_extract = gan_gt[b, :, y1:y2, x1:x2]
+                    gen_extract = self.output[b, :, y1:y2, x1:x2]
+                    batch_gt.append(torchvision.transforms.functional.resize(gt_extract, (32,32)))
+                    batch_gen.append(torchvision.transforms.functional.resize(gen_extract, (32,32)))
+
+            # list of lists of objects for each batch
+            gt_extracted_objs.append(batch_gt)
+            gen_extracted_objs.append(batch_gen)
+
+        # We want to randomly pick subset of objects (for now). Each batch has a different 
+        # set of random indices, since there will be a different number of objects in each.
+        gt_objs, gen_objs = [], []
+        for b in range(gan_gt.shape[0]):
+            gts = gt_extracted_objs[b]
+            gens = gen_extracted_objs[b]
+
+            # Randomly pick a subset of objects for the current image.
+            rand_idxs = random.sample([i for i in range(0, len(gts))], self.n_osm_objs)
+
+            gt_objs.append(torch.stack([gts[g] for g in range(len(gts)) if g in rand_idxs]))
+            gen_objs.append(torch.stack([gens[g] for g in range(len(gens)) if g in rand_idxs]))
+        gt_objs = torch.cat(gt_objs, dim=0)
+        gen_objs = torch.cat(gen_objs, dim=0)
 
         l_g_total = 0
         loss_dict = OrderedDict()
@@ -180,11 +237,18 @@ class SSRESRGANModel(SRGANModel):
             else:
                 disc_input = self.output
 
+            # Get real/fake predictions for both the whole image and the OSM objects.
+            fake_g_pred, obj_pred = self.net_d(disc_input, gen_objs)
+            obj_pred_avg = obj_pred.squeeze(-1).squeeze(-1)  
+
             # gan loss
-            fake_g_pred = self.net_d(disc_input)
             l_g_gan = self.cri_gan(fake_g_pred, True, is_disc=False)
-            l_g_total += l_g_gan
+            # gan object loss
+            l_g_gan_objs = self.osm_obj_weight * self.cri_gan(obj_pred_avg, True, is_disc=False)
+
+            l_g_total += l_g_gan + l_g_gan_objs
             loss_dict['l_g_gan'] = l_g_gan
+            loss_dict['l_g_gan_objs'] = l_g_gan_objs
 
             # Similarity score loss using some large-scale pretrained model
             if self.clip_sim:
@@ -216,18 +280,33 @@ class SSRESRGANModel(SRGANModel):
             real_disc_input = gan_gt
 
         self.optimizer_d.zero_grad()
+
         # real
-        real_d_pred = self.net_d(real_disc_input)
+        real_d_pred, real_obj_pred = self.net_d(real_disc_input, gt_objs)
+        real_obj_pred_avg = real_obj_pred.squeeze(-1).squeeze(-1)
+        # real OSM object prediction
+        l_d_real_objs = self.osm_obj_weight * self.cri_gan(real_obj_pred_avg, True, is_disc=True)
+        # real gan loss
         l_d_real = self.cri_gan(real_d_pred, True, is_disc=True)
         loss_dict['l_d_real'] = l_d_real
+        loss_dict['l_d_real_objs'] = l_d_real_objs
         loss_dict['out_d_real'] = torch.mean(real_d_pred.detach())
+        l_d_real += l_d_real_objs
         l_d_real.backward()
+
         # fake
-        fake_d_pred = self.net_d(fake_disc_input.detach().clone())  # clone for pt1.9
+        fake_d_pred, fake_obj_pred = self.net_d(fake_disc_input.detach().clone(), gen_objs.detach().clone())  # clone for pt1.9
+        fake_obj_pred_avg = fake_obj_pred.squeeze(-1).squeeze(-1)
+        # fake OSM object prediction
+        l_d_fake_objs = self.osm_obj_weight * self.cri_gan(fake_obj_pred_avg, True, is_disc=True)
+        # fake gan loss
         l_d_fake = self.cri_gan(fake_d_pred, False, is_disc=True)
         loss_dict['l_d_fake'] = l_d_fake
+        loss_dict['l_d_fake_objs'] = l_d_fake_objs
         loss_dict['out_d_fake'] = torch.mean(fake_d_pred.detach())
+        l_d_fake += l_d_fake_objs
         l_d_fake.backward()
+
         self.optimizer_d.step()
 
         if self.ema_decay > 0:
@@ -345,50 +424,3 @@ class SSRESRGANModel(SRGANModel):
 
             self._log_validation_metric_values(current_iter, dataset_name, tb_logger)
 
-    @master_only
-    def save_network(self, net, net_label, current_iter, param_key='params'):
-        """Save networks.
-
-        Args:
-            net (nn.Module | list[nn.Module]): Network(s) to be saved.
-            net_label (str): Network label.
-            current_iter (int): Current iter number.
-            param_key (str | list[str]): The parameter key(s) to save network.
-                Default: 'params'.
-        """
-        if current_iter == -1:
-            current_iter = 'latest'
-        save_filename = f'{net_label}_{current_iter}.pth'
-        save_path = os.path.join(self.opt['path']['models'], save_filename)
-
-        net = net if isinstance(net, list) else [net]
-        param_key = param_key if isinstance(param_key, list) else [param_key]
-        assert len(net) == len(param_key), 'The lengths of net and param_key should be the same.'
-
-        save_dict = {}
-        for net_, param_key_ in zip(net, param_key):
-            net_ = self.get_bare_model(net_)
-            state_dict = net_.state_dict()
-            for key, param in state_dict.items():
-                if key.startswith('module.'):  # remove unnecessary 'module.'
-                    key = key[7:]
-                state_dict[key] = param.cpu()
-            save_dict[param_key_] = state_dict
-
-        # avoid occasional writing errors
-        retry = 3
-        while retry > 0:
-            try:
-                print("Saving model weights to...", save_path)
-                torch.save(save_dict, save_path)
-            except Exception as e:
-                logger = get_root_logger()
-                logger.warning(f'Save model error: {e}, remaining retry times: {retry - 1}')
-                time.sleep(1)
-            else:
-                break
-            finally:
-                retry -= 1
-        if retry == 0:
-            logger.warning(f'Still cannot save {save_path}. Just ignore it.')
-            # raise IOError(f'Cannot save {save_path}.')

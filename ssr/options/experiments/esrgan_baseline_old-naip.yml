@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_baseline
+name: esrgan_baseline_old-naip
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -24,6 +24,8 @@ datasets:
 
     tile_weights: /data/piperw/data/ssr_data/train_tile_weights/urban_set_weights.json
 
+    old_naip_path: /data/piperw/data/ssr_data/old_naip/
+
     use_shuffle: False  # shuffle must be false if using tile_weights
 
     num_worker_per_gpu: 32
@@ -42,6 +44,8 @@ datasets:
 
      sentinel2_path: /data/piperw/data/ssr_data/small_val_set/sentinel2
      naip_path: /data/piperw/data/ssr_data/small_val_set/naip
+
+     old_naip_path: /data/piperw/data/ssr_data/old_naip/
 
      use_shuffle: False
 
@@ -80,7 +84,7 @@ network_g:
 
 network_d:
   type: SSR_UNetDiscriminatorSN
-  num_in_ch: 27  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
+  num_in_ch: 30  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
   num_feat: 64
   skip_connection: True
 

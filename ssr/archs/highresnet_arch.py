@@ -72,6 +72,9 @@ class HighResNet(SRCNN):
         # (batch_size, out_channels, height * zoom_factor, width * zoom_factor)
         x = self.sr(x)
 
+        # Ensure output size of (batch_size, channels, height, width)
+        x = self.resize(x)
+
         # Pad with empty revisit dimension: (batch_size, 1, channels, height, width)
         x = x[:, None]
         return x

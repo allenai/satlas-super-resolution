@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_baseline
+name: esrgan_larger1_1perc
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -24,10 +24,12 @@ datasets:
 
     tile_weights: /data/piperw/data/ssr_data/train_tile_weights/urban_set_weights.json
 
+    train_samples: 11000  # about 1 percent of training set
+
     use_shuffle: False  # shuffle must be false if using tile_weights
 
-    num_worker_per_gpu: 32
-    batch_size_per_gpu: 64
+    num_worker_per_gpu: 16
+    batch_size_per_gpu: 32
 
     n_s2_images: 8
 
@@ -74,14 +76,14 @@ network_g:
   type: SSR_RRDBNet
   num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
-  num_feat: 64
+  num_feat: 128
   num_block: 23
-  num_grow_ch: 32
+  num_grow_ch: 64
 
 network_d:
   type: SSR_UNetDiscriminatorSN
   num_in_ch: 27  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
-  num_feat: 64
+  num_feat: 128
   skip_connection: True
 
 # Load in existing weights to the generator and discriminator

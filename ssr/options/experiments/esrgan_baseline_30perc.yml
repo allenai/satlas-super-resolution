@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_baseline
+name: esrgan_baseline_30perc
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -23,6 +23,8 @@ datasets:
     naip_path: /data/piperw/data/ssr_data/train_urban_set/naip
 
     tile_weights: /data/piperw/data/ssr_data/train_tile_weights/urban_set_weights.json
+
+    train_samples: 330000 # about 30 percent of training set
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
