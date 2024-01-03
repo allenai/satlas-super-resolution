@@ -6,7 +6,7 @@ import random
 import torchvision
 import skimage.io
 import numpy as np
-#from osgeo import gdal
+from osgeo import gdal
 from torch.utils import data as data
 
 from basicsr.utils.registry import DATASET_REGISTRY
@@ -91,15 +91,23 @@ class WorldStratDataset(data.Dataset):
             raster = gdal.Open(lr_path)
             array = raster.ReadAsArray()
             lr_im = array.transpose(1, 2, 0)[:, :, 1:4]  # only using RGB bands (bands 2,3,4)
-
             lr_ims.append(lr_im)
 
-        # Resize each Sentinel-2 image to the same spatial dimension.
+        # Resize each Sentinel-2 image to the same spatial dimension. Then stack along first dimension.
         lr_ims = [totensor(cv2.resize(im, (160,160))) for im in lr_ims]
-
         img_LR = torch.stack(lr_ims, dim=0)
+
+        # Find a random 40x40 HR chunk, to create more, smaller training samples.
+        hr_start_x = random.randint(0, 640-160)
+        hr_start_y = random.randint(0, 640-160)
+        lr_start_x = int(hr_start_x // 4)
+        lr_start_y = int(hr_start_y // 4)
+
+        img_HR = img_HR[:, hr_start_x:hr_start_x+160, hr_start_y:hr_start_y+160]
+        img_LR = img_LR[:, :, lr_start_x:lr_start_x+40, lr_start_y:lr_start_y+40]
+
         if not self.use_3d:
-            img_LR = torch.reshape(img_LR, (-1, 160, 160))
+            img_LR = torch.reshape(img_LR, (-1, 40, 40))
 
         return {'hr': img_HR, 'lr': img_LR, 'Index': index}
 
