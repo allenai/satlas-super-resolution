@@ -41,7 +41,7 @@ Additional data includes:
 - JSON files containing tile weights for the train_urban_set and train_full_set (train_tile_weights). Using OpenStreetMap categories, we count the number of tiles where each category appears at least once and then weight tiles by the inverse frequency of the rarest category appearing in that tile. 
 - For train_urban_set, there is a JSON file with mappings between each NAIP chip and polygons of OpenStreetMap categories in that chip (osm_chips_to_masks.json). This is used for the object-discriminator variation described in supplementary Section A.5.1.
 
-All of the above data (except for the full training set due to size) can be downloaded at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_2023-12-08.tar). 
+All of the above data (except for the full training set due to size) can be downloaded at this [link](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/super_resolution_2024-01-02.tar). 
 **The format of the data was changed as of 2023-12-08.**
 
 The full set, in the data format established prior to 2023-12-08, can be downloaded at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_train-full-set_2023-12-01.tar).
