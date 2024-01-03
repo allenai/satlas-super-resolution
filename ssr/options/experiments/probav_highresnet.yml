@@ -1,17 +1,9 @@
 # General Settings
-name: probav_esrgan
-model_type: SSRESRGANModel
+name: probav_highresnet
+model_type: L2Model
 scale: 3
 num_gpu: auto
 manual_seed: 0
-
-# USM the Ground-Truth
-l1_gt_usm: True
-percep_gt_usm: True
-gan_gt_usm: False
-
-# Whether or not to feed the discriminator Sentinel-2 images.
-feed_disc_lr: True
 
 # Dataset and Dataloader Settings
 datasets:
@@ -44,21 +36,19 @@ datasets:
      io_backend:
        type: disk
 
-# Network Structures
+# Network Structure
 network_g:
-  type: SSR_RRDBNet
-  num_in_ch: 27  # number of Sentinel2 images * 3 channels (RGB)
-  num_out_ch: 3
-  num_feat: 64
-  num_block: 23
-  num_grow_ch: 32
-  scale: 3
-
-network_d:
-  type: SSR_UNetDiscriminatorSN 
-  num_in_ch: 30  # real/fake input + [optional] low-res images * 3 channels (RGB)
-  num_feat: 64
-  skip_connection: True
+  type: HighResNet
+  in_channels: 3
+  mask_channels: 0
+  hidden_channels: 128
+  out_channels: 3
+  kernel_size: 3
+  residual_layers: 1
+  output_size: 120
+  revisits: 8
+  zoom_factor: 3
+  sr_kernel_size: 1
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
@@ -66,16 +56,12 @@ path:
   #pretrain_network_g: experiments/sen2venus_esrgan_first/models/net_g_55000.pth
   param_key_g: params_ema
   strict_load_g: false
-  #pretrain_network_d: experiments/sen2venus_esrgan_first/models/net_d_55000.pth
-  param_key_d: params
-  strict_load_d: true
   resume_state: ~
 
   experiments_root: /results/experiments/
 
 # Training Settings
 train:
-  ema_decay: 0.999
   optim_g:
     type: Adam
     lr: !!float 1e-4
@@ -100,32 +86,6 @@ train:
     type: L1Loss
     loss_weight: 1.0
     reduction: mean
-  # Perceptual Loss (content and style losses)
-  perceptual_opt:
-    type: PerceptualLoss
-    layer_weights:
-      # before relu
-      'conv1_2': 0.1
-      'conv2_2': 0.1
-      'conv3_4': 1
-      'conv4_4': 1
-      'conv5_4': 1
-    vgg_type: vgg19
-    use_input_norm: true
-    perceptual_weight: !!float 1.0
-    style_weight: 0
-    range_norm: false
-    criterion: l1
-  # GAN Loss
-  gan_opt:
-    type: GANLoss
-    gan_type: vanilla
-    real_label_val: 1.0
-    fake_label_val: 0.0
-    loss_weight: !!float 1e-1
-
-  net_d_iters: 1
-  net_d_init_iters: 0
 
 # Validation Settings
 val:
