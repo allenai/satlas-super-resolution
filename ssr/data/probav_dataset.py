@@ -9,8 +9,6 @@ from torch.utils import data as data
 
 from basicsr.utils.registry import DATASET_REGISTRY
 
-totensor = torchvision.transforms.ToTensor()
-
 
 @DATASET_REGISTRY.register()
 class PROBAVDataset(data.Dataset):
@@ -62,7 +60,7 @@ class PROBAVDataset(data.Dataset):
         rand_start_y = random.randint(0, 263)
         hr_im = hr_im[rand_start_x:rand_start_x+120, rand_start_y:rand_start_y+120, :]
 
-        hr_tensor = totensor(hr_im)
+        hr_tensor = torch.permute(torch.tensor(hr_im), (2, 0, 1))
 
         # Take corresponding 40x40 chunk of LR images; Goal is to upsample by x3.
         lr_start_x = int(rand_start_x // 3)
@@ -72,7 +70,7 @@ class PROBAVDataset(data.Dataset):
         for lr_path in lr_paths:
             lr_im = cv2.imread(lr_path)
             lr_im = lr_im[lr_start_x:lr_start_x+40, lr_start_y:lr_start_y+40, :]
-            lr_tensor = totensor(lr_im)
+            lr_tensor = torch.permute(torch.tensor(lr_im), (2, 0, 1))
             lr_ims.append(lr_tensor)
 
         if self.use_3d:
