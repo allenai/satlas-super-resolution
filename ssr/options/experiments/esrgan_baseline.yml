@@ -87,7 +87,7 @@ network_d:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: experiments/sample_net_g.pth 
+  pretrain_network_g: experiments/esrgan_baseline/models/net_g_830000.pth 
   param_key_g: params_ema
   strict_load_g: true
   #pretrain_network_d: experiments/sample_net_d.pth
@@ -95,7 +95,7 @@ path:
   strict_load_d: true
   resume_state: ~
 
-  experiments_root: /results/experiments/
+  #experiments_root: /results/experiments/
 
 # Training Settings
 train:
@@ -188,7 +188,7 @@ test:
        lpips_model: vgg
      clipscore:
        type: calculate_clipscore
-       clip_model: siglip-ViT-SO400M-14  # see ssr/metrics/clipscore.py for currently supported models
+       clip_model: clipa-ViT-bigG-14  # see ssr/metrics/clipscore.py for currently supported models
 
 # Logging Settings
 logger:
