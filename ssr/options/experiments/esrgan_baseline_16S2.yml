@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_larger2_3perc
+name: esrgan_baseline_16S2
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -24,14 +24,12 @@ datasets:
 
     tile_weights: /data/piperw/data/ssr_data/train_tile_weights/urban_set_weights.json
 
-    train_samples: 33000  # about 3 percent of training set
-
     use_shuffle: False  # shuffle must be false if using tile_weights
 
-    num_worker_per_gpu: 16
-    batch_size_per_gpu: 32
+    num_worker_per_gpu: 32
+    batch_size_per_gpu: 64
 
-    n_s2_images: 8
+    n_s2_images: 16
 
     s2_bands: [tci]
 
@@ -47,7 +45,7 @@ datasets:
 
      use_shuffle: False
 
-     n_s2_images: 8
+     n_s2_images: 16
 
      s2_bands: [tci]
 
@@ -66,7 +64,7 @@ test_datasets:
 
      use_shuffle: False
 
-     n_s2_images: 8
+     n_s2_images: 16
 
      io_backend:
        type: disk
@@ -74,22 +72,22 @@ test_datasets:
 # Network Structures
 network_g:
   type: SSR_RRDBNet
-  num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
+  num_in_ch: 48  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
-  num_feat: 256
+  num_feat: 64
   num_block: 23
-  num_grow_ch: 128
+  num_grow_ch: 32
 
 network_d:
   type: SSR_UNetDiscriminatorSN
-  num_in_ch: 27  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
-  num_feat: 256
+  num_in_ch: 51  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
+  num_feat: 64
   skip_connection: True
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  pretrain_network_g: experiments/esrgan_larger2_3perc/models/net_g_300000.pth
+  #pretrain_network_g: experiments/esrgan_baseline
   param_key_g: params_ema
   strict_load_g: true
   #pretrain_network_d: experiments/sample_net_d.pth
@@ -97,7 +95,7 @@ path:
   strict_load_d: true
   resume_state: ~
 
-  #experiments_root: /results/experiments/
+  experiments_root: /results/experiments/
 
 # Training Settings
 train:
