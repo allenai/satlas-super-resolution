@@ -1,7 +1,7 @@
 # General Settings
 name: probav_srcnn
 model_type: L2Model
-scale: 3
+scale: 4
 num_gpu: auto
 manual_seed: 0
 
@@ -14,6 +14,8 @@ datasets:
     data_root: /data/piperw/data/PROBA-V/
 
     use_shuffle: True  # shuffle must be false if using tile_weights
+
+    use_3d: True
 
     n_lr_images: 9
 
@@ -31,6 +33,8 @@ datasets:
 
      use_shuffle: False
 
+     use_3d: True
+
      n_lr_images: 9
 
      io_backend:
@@ -46,8 +50,8 @@ network_g:
   kernel_size: 3
   residual_layers: 1
   output_size: 120
-  revisits: 8
-  zoom_factor: 3
+  revisits: 9
+  zoom_factor: 4
   sr_kernel_size: 1
 
 # Load in existing weights to the generator and discriminator
