@@ -1,5 +1,10 @@
 # Satlas Super Resolution
 
+> [!NOTE] 
+> This `experiments` branch will ultimately contain all config files needed to replicate results from the paper, including experiments
+on the WorldStrat, OLI2MSI, PROBA-V, Sen2VENUS, and MuS2 datasets (along with our S2-NAIP dataset). 
+> The `main` branch will be more stable, with less commits and only a handful of example config files.
+
 [Satlas](https://satlas.allen.ai/) aims to provide open AI-generated geospatial data that is highly accurate, available globally, 
 and updated on a frequent (monthly) basis. One of the data applications in Satlas is globally generated 
 **Super-Resolution** imagery for 2023. 
@@ -27,7 +32,7 @@ There are two training sets:
 - The urban set (train_urban_set), with ~1.1 million pairs from locations within a 5km radius of cities in the USA with a 
 population >= 50k. There are 12 Sentinel-2 bands included in this set. 
 
-The urban set (termed S2-NAIP) was used for all experiments in the paper, because we found the full set to be overwhelmed with monotonous landscapes.
+The urban set (termed S2-NAIP) was used for all experiments in the paper, because we found the full set to be overwhelmed with monotonous landscapes. 
 
 There are three val/test sets:
 - The validation set (val_set) consists of 8192 image pairs. There are 12 Sentinel-2 bands included in this set.
@@ -41,8 +46,10 @@ Additional data includes:
 - JSON files containing tile weights for the train_urban_set and train_full_set (train_tile_weights). Using OpenStreetMap categories, we count the number of tiles where each category appears at least once and then weight tiles by the inverse frequency of the rarest category appearing in that tile. 
 - For train_urban_set, there is a JSON file with mappings between each NAIP chip and polygons of OpenStreetMap categories in that chip (osm_chips_to_masks.json). This is used for the object-discriminator variation described in supplementary Section A.5.1.
 
-All of the above data (except for the full training set due to size) can be downloaded at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_2023-12-08.tar). The full training set is available for download at this [link]().
-**Updated format on 2023-12-08.**
+All of the above data (except for the full training set due to size) can be downloaded at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_2023-12-08.tar). 
+**The format of the data was changed as of 2023-12-08.**
+
+The full set, in the data format established prior to 2023-12-08, can be downloaded at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_train-full-set_2023-12-01.tar).
 
 ### Model Weights
 The weights for ESRGAN models, used to generate super-resolution outputs for Satlas, with varying number of Sentinel-2 images as input 
@@ -75,8 +82,10 @@ In each set, there is a `naip` folder containing images in this format: `naip/{i
 the image's unique identifier with the capture timestamp, and tile refers to its location in a 2^17 x 2^17 Web-Mercator grid (ex. 12345_67890). 
 
 ### Sentinel-2
-We use the Sentinel-2 L1C imagery with preprocessing detailed [here](https://github.com/allenai/satlas/blob/main/Normalization.md#sentinel-2-images).
-Most experiments utilize just the TCI bands.
+We use the Sentinel-2 L1C imagery. 
+Models that input 3 bands use the TCI file provided by ESA. This contains an 8-bit image that has been normalized by ESA to the 0-255 range. 
+The image is normalized for input to the model by dividing the 0-255 RGB values by 255, and retaining the RGB order.
+Most experiments utilize just TCI, but for non-TCI bands, the 16-bit source data is divided by 8160 and clipped to 0-1.
 
 For each NAIP image, there is a time series of corresponding 32x32px Sentinel-2 images. These time series are saved as pngs in the 
 shape, `[number_sentinel2_images * 32, 32, 3]`. Before running this data through the models, the data is reshaped to

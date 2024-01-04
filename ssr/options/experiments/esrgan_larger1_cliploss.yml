@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_larger2
+name: esrgan_larger1_cliploss
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -26,8 +26,8 @@ datasets:
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
-    num_worker_per_gpu: 16
-    batch_size_per_gpu: 16
+    num_worker_per_gpu: 32
+    batch_size_per_gpu: 64
 
     n_s2_images: 8
 
@@ -74,27 +74,29 @@ network_g:
   type: SSR_RRDBNet
   num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
-  num_feat: 256
+  num_feat: 128
   num_block: 23
-  num_grow_ch: 128
+  num_grow_ch: 64
 
 network_d:
   type: SSR_UNetDiscriminatorSN
   num_in_ch: 27  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
-  num_feat: 256
+  num_feat: 128
   skip_connection: True
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  pretrain_network_g: experiments/esrgan_larger2/models/net_g_1200000.pth
-  #pretrain_network_g: experiments/sample_net_g.pth 
+  pretrain_network_g: experiments/esrgan_larger1_cliploss-continued/models/net_g_635000.pth
+  #pretrain_network_g: /data/piperw/data/ssr_data/weights/net_g_25000.pth
   param_key_g: params_ema
-  strict_load_g: true
-  #pretrain_network_d: experiments/sample_net_d.pth
+  strict_load_g: false
+  #pretrain_network_d: /data/piperw/data/ssr_data/weights/net_d_25000.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~
+
+  #experiments_root: /results/experiments/
 
 # Training Settings
 train:
@@ -146,6 +148,11 @@ train:
     real_label_val: 1.0
     fake_label_val: 0.0
     loss_weight: !!float 1e-1
+  # CLIP similarity loss
+  clip_opt:
+    type: CLIPLoss
+    clip_loss_model: RN50
+    loss_weight: !!float 1.0
 
   net_d_iters: 1
   net_d_init_iters: 0
