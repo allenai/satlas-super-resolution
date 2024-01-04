@@ -27,7 +27,7 @@ datasets:
     use_shuffle: False  # shuffle must be false if using tile_weights
 
     num_worker_per_gpu: 16
-    batch_size_per_gpu: 32
+    batch_size_per_gpu: 16
 
     n_s2_images: 8
 
@@ -87,6 +87,7 @@ network_d:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
+  pretrain_network_g: experiments/esrgan_larger2/models/net_g_1200000.pth
   #pretrain_network_g: experiments/sample_net_g.pth 
   param_key_g: params_ema
   strict_load_g: true
@@ -151,7 +152,7 @@ train:
 
 # Validation Settings
 val:
-   val_freq: 50 #!!float 5e3
+   val_freq: !!float 5e5
    save_img: True
 
    metrics:
@@ -186,11 +187,11 @@ test:
        lpips_model: vgg
      clipscore:
        type: calculate_clipscore
-       clip_model: siglip-ViT-SO400M-14  # see ssr/metrics/clipscore.py for currently supported models
+       clip_model: clipa-ViT-bigG-14  # see ssr/metrics/clipscore.py for currently supported models
 
 # Logging Settings
 logger:
-  print_freq: 100
+  print_freq: 1000
   save_checkpoint_freq: !!float 5e3 
   use_tb_logger: true
   wandb:

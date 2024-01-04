@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_baseline_1perc
+name: esrgan_baseline
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -24,12 +24,10 @@ datasets:
 
     tile_weights: /data/piperw/data/ssr_data/train_tile_weights/urban_set_weights.json
 
-    train_samples: 11000 # about 1 percent of training set
-
     use_shuffle: False  # shuffle must be false if using tile_weights
 
-    num_worker_per_gpu: 32
-    batch_size_per_gpu: 64
+    num_worker_per_gpu: 16
+    batch_size_per_gpu: 32
 
     n_s2_images: 8
 
@@ -89,15 +87,13 @@ network_d:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  pretrain_network_g: experiments/esrgan_baseline_1perc/models/net_g_215000.pth
+  #pretrain_network_g: experiments/sample_net_g.pth 
   param_key_g: params_ema
   strict_load_g: true
   #pretrain_network_d: experiments/sample_net_d.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~
-
-  #experiments_root: /results/experiments/
 
 # Training Settings
 train:
@@ -149,13 +145,22 @@ train:
     real_label_val: 1.0
     fake_label_val: 0.0
     loss_weight: !!float 1e-1
+  # CLIP similarity loss
+  clip_opt:
+    type: CLIPLoss
+    clip_loss_model: ViT-B-16-SigLIP-256
+    loss_weight: !!float 1.0
+  # SSIM loss
+  ssim_opt:
+    type: SSIMLoss
+    loss_weight: !!float 1e-2
 
   net_d_iters: 1
   net_d_init_iters: 0
 
 # Validation Settings
 val:
-   val_freq: !!float 5e5
+   val_freq: 50 #!!float 5e3
    save_img: True
 
    metrics:
@@ -190,11 +195,11 @@ test:
        lpips_model: vgg
      clipscore:
        type: calculate_clipscore
-       clip_model: clipa-ViT-bigG-14  # see ssr/metrics/clipscore.py for currently supported models
+       clip_model: siglip-ViT-SO400M-14  # see ssr/metrics/clipscore.py for currently supported models
 
 # Logging Settings
 logger:
-  print_freq: 1000
+  print_freq: 100
   save_checkpoint_freq: !!float 5e3 
   use_tb_logger: true
   wandb:
