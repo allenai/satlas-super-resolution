@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_larger1_3perc
+name: esrgan_smaller1
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -24,12 +24,10 @@ datasets:
 
     tile_weights: /data/piperw/data/ssr_data/train_tile_weights/urban_set_weights.json
 
-    train_samples: 33000  # about 3 percent of training set
-
     use_shuffle: False  # shuffle must be false if using tile_weights
 
-    num_worker_per_gpu: 16
-    batch_size_per_gpu: 32
+    num_worker_per_gpu: 32
+    batch_size_per_gpu: 64
 
     n_s2_images: 8
 
@@ -76,20 +74,20 @@ network_g:
   type: SSR_RRDBNet
   num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
-  num_feat: 128
+  num_feat: 32
   num_block: 23
-  num_grow_ch: 64
+  num_grow_ch: 16
 
 network_d:
   type: SSR_UNetDiscriminatorSN
   num_in_ch: 27  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
-  num_feat: 128
+  num_feat: 32
   skip_connection: True
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  pretrain_network_g: experiments/esrgan_larger1_3perc/models/net_g_545000.pth
+  #pretrain_network_g: experiments/
   param_key_g: params_ema
   strict_load_g: true
   #pretrain_network_d: experiments/sample_net_d.pth
@@ -97,7 +95,7 @@ path:
   strict_load_d: true
   resume_state: ~
 
-  #experiments_root: /results/experiments/
+  experiments_root: /results/experiments/
 
 # Training Settings
 train:
