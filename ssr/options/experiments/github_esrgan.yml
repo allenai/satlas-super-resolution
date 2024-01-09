@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_baseline_60m
+name: github_esrgan_global
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -26,12 +26,12 @@ datasets:
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
-    num_worker_per_gpu: 16
-    batch_size_per_gpu: 32
+    num_worker_per_gpu: 32
+    batch_size_per_gpu: 64
 
     n_s2_images: 8
 
-    s2_bands: [tci, b01, b08, b09, b10, b05, b06, b07, b11, b12]
+    s2_bands: [tci]
 
     io_backend:
       type: disk
@@ -47,7 +47,7 @@ datasets:
 
      n_s2_images: 8
 
-     s2_bands: [tci, b01, b08, b09, b10, b05, b06, b07, b11, b12]
+     s2_bands: [tci]
 
      io_backend:
        type: disk
@@ -66,15 +66,13 @@ test_datasets:
 
      n_s2_images: 8
 
-     s2_bands: [tci, b01, b08, b09, b10, b05, b06, b07, b11, b12]
-
      io_backend:
        type: disk
 
 # Network Structures
 network_g:
   type: SSR_RRDBNet
-  num_in_ch: 96  # number of Sentinel2 images * 3 channels (RGB)
+  num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
   num_feat: 64
   num_block: 23
@@ -82,14 +80,15 @@ network_g:
 
 network_d:
   type: SSR_UNetDiscriminatorSN
-  num_in_ch: 99  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
+  num_in_ch: 27  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
   num_feat: 64
   skip_connection: True
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: experiments/
+  pretrain_network_g: experiments/global/models/net_g_1280000.pth
+  #pretrain_network_g: experiments/github_weights_2023/esrgan_orig_18S2.pth
   param_key_g: params_ema
   strict_load_g: true
   #pretrain_network_d: experiments/sample_net_d.pth
