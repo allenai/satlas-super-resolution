@@ -81,7 +81,7 @@ network_g:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: experiments/sample_net_g.pth 
+  pretrain_network_g: experiments/srcnn_s2naip/models/net_g_srcnn.pth
   param_key_g: params_ema
   strict_load_g: true
   resume_state: ~
@@ -145,7 +145,7 @@ test:
        lpips_model: vgg
      clipscore:
        type: calculate_clipscore
-       clip_model: siglip-ViT-SO400M-14  # see ssr/metrics/clipscore.py for currently supported models
+       clip_model: clipa-ViT-bigG-14  # see ssr/metrics/clipscore.py for currently supported models
 
 # Logging Settings
 logger:
