@@ -5,6 +5,7 @@ import torch
 import random
 import torchvision
 import numpy as np
+import torch.nn.functional as F
 from torch.utils import data as data
 from torch.utils.data import WeightedRandomSampler
 
@@ -50,6 +51,9 @@ class S2NAIPDataset(data.Dataset):
 
         self.split = opt['phase']
         train = True if self.split == 'train' else False
+
+        # Random cropping and resizing augmentation; training only
+        self.rand_crop = opt['rand_crop'] if 'rand_crop' in opt else False
 
         self.n_s2_images = int(opt['n_s2_images'])
         self.scale = int(opt['scale'])
@@ -219,6 +223,16 @@ class S2NAIPDataset(data.Dataset):
 
             # Extract the self.n_s2_images from the first dimension.
             img_S2 = s2_tensor[rand_indices_tensor]
+
+            # If the rand_crop augmentation is specified (during training only), randomly pick size in [24,32]
+            # and randomly crop the LR and HR images to their respective sizes, then resize back to 32x32 / 128x128.
+            if self.rand_crop:
+                rand_lr_size = random.randint(24, 32)
+                rand_hr_size = int(rand_lr_size * 4)
+                img_S2_cropped = img_S2[:, :, :rand_lr_size, :rand_lr_size]
+                img_HR_cropped = img_HR[:, :rand_hr_size, :rand_hr_size]
+                img_S2 = F.interpolate(img_S2_cropped, (32,32))
+                img_HR = F.interpolate(img_HR_cropped.unsqueeze(0), (128,128)).squeeze(0)  # need to unsqueeze tensor for interpolation to work, then squeeze
 
             # If using a model that expects 5 dimensions, we will not reshape to 4 dimensions.
             if not self.use_3d:
