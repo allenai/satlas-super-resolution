@@ -23,28 +23,27 @@ https://satlas.allen.ai/, as well as code, data, and model weights corresponding
 
 ### Data
 There are two training sets: 
-- The full set (train_full_set), consisting of ~44million pairs from all locations where NAIP imagery was available between 2019-2020.
 - The urban set (train_urban_set), with ~1.1 million pairs from locations within a 5km radius of cities in the USA with a 
-population >= 50k. There are 12 Sentinel-2 bands included in this set. 
+population >= 50k. There are 12 Sentinel-2 bands included in this set. ([download_part1](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/satellite-super-resolution/train_urban_set.z01), [download_part2](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/satellite-super-resolution/train_urban_set.z02), [download_part3](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/satellite-super-resolution/train_urban_set.z03))
+- The full set (train_full_set), consisting of ~44million pairs from all locations where NAIP imagery was available between 2019-2020. The full set, in the data format established prior
+ to 2023-12-08, can be downloaded at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_train-full-set_2023-12-01.tar).
 
-The urban set (termed S2-NAIP) was used for all experiments in the paper, because we found the full set to be overwhelmed with monotonous landscapes.
+The urban set (termed S2-NAIP) was used for all experiments in the paper, because we found the full set to be overwhelmed with monotonous landscapes. 
 
 There are three val/test sets:
-- The validation set (val_set) consists of 8192 image pairs. There are 12 Sentinel-2 bands included in this set.
+- The validation set (val_set) consists of 8192 image pairs. There are 12 Sentinel-2 bands included in this set. ([download](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/super_resolution_val_set_2024-01-09.tar))
 - A small subset of this validation set (small_val_set) with 256 image pairs that are specifically from
-urban areas, which is useful for qualititive analysis and faster validation. 
+urban areas, which is useful for qualititive analysis and faster validation. ([download](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/super_resolution_small_val_set_2024-01-09.tar))
 - A test set (test_set) containing eight 16x16 grids of Sentinel-2 tiles from interesting locations including
-Dry Tortugas National Park, Bolivia, France, South Africa, and Japan.
+Dry Tortugas National Park, Bolivia, France, South Africa, and Japan. ([download](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/super_resolution_test_set_2024-01-09.tar))
 
 Additional data includes:
-- A set of NAIP images from 2016-2018 corresponding to the train_urban_set and small_val_set NAIP images (old-naip). These are used as input to the discriminator for the model variant described in supplementary Section A.5.2.
-- JSON files containing tile weights for the train_urban_set and train_full_set (train_tile_weights). Using OpenStreetMap categories, we count the number of tiles where each category appears at least once and then weight tiles by the inverse frequency of the rarest category appearing in that tile. 
-- For train_urban_set, there is a JSON file with mappings between each NAIP chip and polygons of OpenStreetMap categories in that chip (osm_chips_to_masks.json). This is used for the object-discriminator variation described in supplementary Section A.5.1.
+- A set of NAIP images from 2016-2018 corresponding to the train_urban_set and small_val_set NAIP images (old-naip). These are used as input to the discriminator for the model variant described in supplementary Section A.5.2. ([download](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/old_naip.tar))
+- JSON files containing tile weights for the train_urban_set and train_full_set (train_tile_weights). Using OpenStreetMap categories, we count the number of tiles where each category appears at least once and then weight tiles by the inverse frequency of the rarest category appearing in that tile. ([download](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/super_resolution_train_tile_weights.tar))
+- For train_urban_set, there is a JSON file with mappings between each NAIP chip and polygons of OpenStreetMap categories in that chip (osm_chips_to_masks.json). This is used for the object-discriminator variation described in supplementary Section A.5.1. ([download](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/osm_chips_to_masks.json))
+- RRDBNet weights from a model pretrained on SatlasPretrain. Used in experiment described in supplementary Section A.5.3. ([download](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/satlas_rrdbnet.pth))
 
-All of the above data (except for the full training set due to size) can be downloaded at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_2023-12-08.tar). 
-**The format of the data was changed as of 2023-12-08.**
-
-The full set, in the data format established prior to 2023-12-08, can be downloaded at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_train-full-set_2023-12-01.tar).
+All of the above data (except for the full training set due to size) can be downloaded at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_2023-12-08.tar), or individual links are provided above for ease of downloading.
 
 ### Model Weights
 The weights for ESRGAN models, used to generate super-resolution outputs for Satlas, with varying number of Sentinel-2 images as input 
@@ -58,7 +57,7 @@ The weights for the L2 loss-based models trained on our S2-NAIP dataset:
 - [SRCNN](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/srcnn_s2naip.pth)
 - [HighResNet](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/highresnet_s2naip.pth)
 
-*We are working to upload models and pretrained weights corresponding to the paper.*
+*We are working to upload pretrained weights corresponding to the paper.*
 
 ## S2-NAIP Dataset Structure
 The dataset consists of image pairs from Sentinel-2 and NAIP satellites, where a pair is a time series of Sentinel-2 images 
@@ -83,8 +82,7 @@ The image is normalized for input to the model by dividing the 0-255 RGB values 
 Most experiments utilize just TCI, but for non-TCI bands, the 16-bit source data is divided by 8160 and clipped to 0-1.
 
 For each NAIP image, there is a time series of corresponding 32x32px Sentinel-2 images. These time series are saved as pngs in the 
-shape, `[number_sentinel2_images * 32, 32, 3]`. Before running this data through the models, the data is reshaped to
-`[number_sentinel2_images, 32, 32, 3]`. Note that the input images **do not** need to be in chronological order.
+shape, `[number_sentinel2_images * 32, 32, 3]`. Note that the input images **do not** need to be in chronological order.
 
 In each set, there is a `sentinel2` folder containing these time series in the format: `sentinel2/{tile}/{band}.png`, where 
 tile refers to its location in a 2^17 x 2^17 Web-Mercator grid (ex. 12345_67890) and band refers to the Sentinel-2 bands 
