@@ -127,6 +127,7 @@ train:
 
 # Validation Settings
 val:
+<<<<<<< HEAD
    val_freq: !!float 5e4
    save_img: True
 
