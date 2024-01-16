@@ -58,6 +58,8 @@ if __name__ == "__main__":
         input_tensor, s2_image = format_s2naip_data(im, n_lr_images, device)
         output = model(input_tensor)
 
+        # Convert the model output back to a numpy array and adjust shape and range.
+        output = torch.clamp(output, 0, 1) 
         output = output.squeeze().cpu().detach().numpy()
         output = np.transpose(output * 255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
         skimage.io.imsave(save_fn, output, check_contrast=False)
