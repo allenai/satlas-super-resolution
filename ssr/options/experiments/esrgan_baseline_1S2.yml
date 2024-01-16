@@ -87,7 +87,7 @@ network_d:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: experiments/esrgan_baseline
+  pretrain_network_g: experiments/esrgan_baseline_1S2/models/net_g_505000.pth
   param_key_g: params_ema
   strict_load_g: true
   #pretrain_network_d: experiments/sample_net_d.pth
@@ -95,7 +95,7 @@ path:
   strict_load_d: true
   resume_state: ~
 
-  experiments_root: /results/experiments/
+  #experiments_root: /results/experiments/
 
 # Training Settings
 train:
