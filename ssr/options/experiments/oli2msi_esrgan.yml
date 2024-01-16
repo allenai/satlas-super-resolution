@@ -24,7 +24,7 @@ datasets:
     use_shuffle: True  # shuffle MUST be False if using tile_weights
 
     num_worker_per_gpu: 8
-    batch_size_per_gpu: 2
+    batch_size_per_gpu: 8
 
     n_s2_images: 1
 
@@ -127,7 +127,7 @@ train:
 
 # Validation Settings
 val:
-   val_freq: !!float 5e3
+   val_freq: !!float 5e4
    save_img: True
 
    metrics:
