@@ -1,0 +1,215 @@
+# General Settings
+name: mapbox_only
+model_type: SSRESRGANModel
+scale: 4
+num_gpu: auto
+manual_seed: 0
+
+# USM the Ground-Truth
+l1_gt_usm: True
+percep_gt_usm: True
+gan_gt_usm: False
+
+# Feed the discriminator the same low-res images as the generator receives
+feed_disc_lr: True
+
+# Inference args
+data_dir: /data/piperw/data/global_set/sentinel2
+n_lr_images: 8
+save_path: global_results/
+
+# Dataset and Dataloader Settings
+datasets:
+  train:
+    name: train
+    type: S2NAIPDataset
+
+    sentinel2_path: /data/piperw/data/global_set/sentinel2
+    naip_path: /data/piperw/data/global_set/mapbox
+
+    use_shuffle: True  # shuffle must be false if using tile_weights
+    rand_crop: True 
+
+    num_worker_per_gpu: 16
+    batch_size_per_gpu: 16
+
+    n_s2_images: 8
+
+    s2_bands: [tci, b08]
+
+    io_backend:
+      type: disk
+
+  val:
+     name: validation
+     type: S2NAIPDataset
+
+     sentinel2_path: /data/piperw/data/ssr_data/small_val_set/sentinel2
+     naip_path: /data/piperw/data/ssr_data/small_val_set/naip
+
+     use_shuffle: False
+
+     n_s2_images: 8
+
+     s2_bands: [tci, b08]
+
+     io_backend:
+       type: disk
+
+test_datasets:
+   test:
+     name: test
+     type: S2NAIPDataset
+     phase: test
+     scale: 4
+
+     sentinel2_path: /data/piperw/data/ssr_data/small_val_set/sentinel2
+     naip_path: /data/piperw/data/ssr_data/small_val_set/naip
+
+     use_shuffle: False
+
+     s2_bands: [tci, b08]
+
+     n_s2_images: 8
+
+     io_backend:
+       type: disk
+
+# Network Structures
+network_g:
+  type: SSR_RRDBNet
+  num_in_ch: 32  # number of Sentinel2 images * 3 channels (RGB)
+  num_out_ch: 3
+  num_feat: 128
+  num_block: 23
+  num_grow_ch: 64
+
+network_d:
+  type: SSR_UNetDiscriminatorSN
+  num_in_ch: 35  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
+  num_feat: 128
+  skip_connection: True
+
+# Load in existing weights to the generator and discriminator
+# Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
+path:
+  #pretrain_network_g: experiments/global/models/net_g_1280000.pth
+  param_key_g: params_ema
+  strict_load_g: true
+  #pretrain_network_d: experiments/global/models/net_d_1280000.pth
+  param_key_d: params
+  strict_load_d: true
+  resume_state: ~
+
+  #experiments_root: /results/experiments/
+
+# Training Settings
+train:
+  ema_decay: 0.999
+  optim_g:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+  optim_d:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: MultiStepLR
+    milestones: [400000]
+    gamma: 0.5
+
+  total_iter: 100000000
+  warmup_iter: -1  # no warm up
+
+  # Losses
+  pixel_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+  # Perceptual Loss (content and style losses)
+  perceptual_opt:
+    type: PerceptualLoss
+    layer_weights:
+      # before relu
+      'conv1_2': 0.1
+      'conv2_2': 0.1
+      'conv3_4': 1
+      'conv4_4': 1
+      'conv5_4': 1
+    vgg_type: vgg19
+    use_input_norm: true
+    perceptual_weight: !!float 1.0
+    style_weight: 0
+    range_norm: false
+    criterion: l1
+  # GAN Loss
+  gan_opt:
+    type: GANLoss
+    gan_type: vanilla
+    real_label_val: 1.0
+    fake_label_val: 0.0
+    loss_weight: !!float 1e-1
+  # CLIP similarity loss
+  clip_opt:
+    type: CLIPLoss
+    clip_loss_model: RN50
+
+  net_d_iters: 1
+  net_d_init_iters: 0
+
+# Validation Settings
+val:
+   val_freq: !!float 5e5
+   save_img: True
+
+   metrics:
+     psnr:
+       type: calculate_psnr
+       crop_border: 4
+       test_y_channel: false
+     ssim:
+       type: calculate_ssim
+       crop_border: 4
+       test_y_channel: false
+
+# Testing Settings
+test:
+  save_img: True
+
+  metrics:
+     psnr:
+       type: calculate_psnr
+       crop_border: 4
+       test_y_channel: false
+     ssim:
+       type: calculate_ssim
+       crop_border: 4
+       test_y_channel: false
+     cpsnr:
+       type: calculate_cpsnr
+       crop_border: 4
+       test_y_channel: false
+     lpips:
+       type: calculate_lpips
+       lpips_model: vgg
+     clipscore:
+       type: calculate_clipscore
+       clip_model: clipa-ViT-bigG-14  # see ssr/metrics/clipscore.py for currently supported models
+
+# Logging Settings
+logger:
+  print_freq: 1000
+  save_checkpoint_freq: !!float 5e3 
+  use_tb_logger: true
+  wandb:
+    project: multisat
+    resume_id: ~
+
+# Dist Training Settings
+dist_params:
+  backend: nccl
+  port: 29500
