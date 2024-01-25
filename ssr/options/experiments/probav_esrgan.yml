@@ -1,5 +1,5 @@
 # General Settings
-name: probav_esrgan
+name: probav_esrgan-test
 model_type: SSRESRGANModel
 scale: 3
 num_gpu: auto
@@ -71,7 +71,7 @@ path:
   strict_load_d: true
   resume_state: ~
 
-  experiments_root: /results/experiments/
+  #experiments_root: /results/experiments/
 
 # Training Settings
 train:

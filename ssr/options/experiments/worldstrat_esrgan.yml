@@ -20,14 +20,14 @@ datasets:
     type: WorldStratDataset
 
     # Paths to Sentinel-2 and HR imagery.
-    lr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
-    hr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
-    splits_csv: /data/piperw/data/worldstrat/dataset/stratified_train_val_test_split.csv
+    lr_path: /data/piperw/data/worldstrat/lr_dataset/
+    hr_path: /data/piperw/data/worldstrat/hr_dataset/
+    splits_csv: /data/piperw/data/worldstrat/stratified_train_val_test_split.csv
 
     use_shuffle: True  # shuffle MUST be False if using tile_weights
 
     num_worker_per_gpu: 8
-    batch_size_per_gpu: 2
+    batch_size_per_gpu: 8
 
     n_s2_images: 8
 
@@ -39,9 +39,9 @@ datasets:
      type: WorldStratDataset
 
      # Paths to Sentinel-2 and HR imagery.
-     lr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
-     hr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
-     splits_csv: /data/piperw/data/worldstrat/dataset/stratified_train_val_test_split.csv
+     lr_path: /data/piperw/data/worldstrat/lr_dataset/
+     hr_path: /data/piperw/data/worldstrat/hr_dataset/
+     splits_csv: /data/piperw/data/worldstrat/stratified_train_val_test_split.csv
 
      use_shuffle: False
 

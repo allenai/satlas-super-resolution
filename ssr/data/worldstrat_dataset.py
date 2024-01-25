@@ -6,7 +6,7 @@ import random
 import torchvision
 import skimage.io
 import numpy as np
-#from osgeo import gdal
+from osgeo import gdal
 from torch.utils import data as data
 
 from basicsr.utils.registry import DATASET_REGISTRY
