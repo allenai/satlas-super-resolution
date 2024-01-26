@@ -25,6 +25,17 @@ Zooming In: Advancing Super-Resolution for Remote Sensing](https://arxiv.org/pdf
 This repository contains the training and inference code for the AI-generated Super-Resolution data found at 
 https://satlas.allen.ai/, as well as code, data, and model weights corresponding to the paper.
 
+The experiments branch contains config files for experiments from the paper, while the main branch is limited to showcasing the main features.
+
+## Installation
+Initialize conda:
+```
+conda create --name ssr python==3.9
+conda activate ssr
+pip install -r requirements.txt
+conda install gdal
+```
+
 ## Download
 
 ### Data

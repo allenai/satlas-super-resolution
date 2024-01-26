@@ -59,7 +59,7 @@ if __name__ == "__main__":
         output = model(input_tensor)
 
         # Convert the model output back to a numpy array and adjust shape and range.
-        output = torch.clamp(output, 0, 1)
+        output = torch.clamp(output, 0, 1) 
         output = output.squeeze().cpu().detach().numpy()
         output = np.transpose(output * 255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
         skimage.io.imsave(save_fn, output, check_contrast=False)
