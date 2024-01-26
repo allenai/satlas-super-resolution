@@ -87,11 +87,10 @@ network_d:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  pretrain_network_g: experiments/esrgan_larger2_cliploss-continued/models/net_g_695000.pth
-  #pretrain_network_g: /data/piperw/data/ssr_data/weights/net_g_20000.pth
+  #pretrain_network_g: experiments/sample_net_g.pth
   param_key_g: params_ema
   strict_load_g: false
-  #pretrain_network_g: /data/piperw/data/ssr_data/weights/net_d_20000.pth
+  #pretrain_network_d: experiments/sample_net_d.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~

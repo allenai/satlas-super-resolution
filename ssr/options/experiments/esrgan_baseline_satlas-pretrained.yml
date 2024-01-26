@@ -87,8 +87,7 @@ network_d:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  pretrain_network_g: experiments/esrgan_baseline_satlas-pretrained/models/net_g_1350000.pth
-  #pretrain_network_g: /data/piperw/data/ssr_data/satlas32_rrdbnet_last.pth  # pretrained weights on SatlasPretrain
+  #pretrain_network_g: weights/satlas32_rrdbnet_last.pth  # pretrained weights on SatlasPretrain
   param_key_g: params_ema
   strict_load_g: false  # the first conv does not match up
   #pretrain_network_d: experiments/sample_net_d.pth

@@ -20,6 +20,7 @@ def format_s2naip_data(s2_data, n_s2_images, device):
             goods.append(i)
 
     # Pick {n_s2_images} random indices of s2 images to use. Skip ones that are partially black.
+    # NOTE: assumes that there are at least n_s2_images images provided.
     if len(goods) >= n_s2_images:
         rand_indices = random.sample(goods, n_s2_images)
     else:

@@ -10,7 +10,7 @@ l1_gt_usm: True
 percep_gt_usm: True
 gan_gt_usm: False
 
-# Whether or not to feed the discriminator Sentinel-2 images.
+# Whether or not to feed the discriminator low-res images.
 feed_disc_lr: True
 
 # Dataset and Dataloader Settings
@@ -63,10 +63,10 @@ network_d:
 # Load in existing weights to the generator and discriminator.
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: weights/satlas32_rrdbnet_last.pth
+  #pretrain_network_g: experiments/sample_net_g.pth
   param_key_g: params
   strict_load_g: false
-  #pretrain_network_d:
+  #pretrain_network_d: experiments/sample_net_d.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~

@@ -2,7 +2,8 @@
 
 > [!NOTE] 
 > This `experiments` branch will ultimately contain all config files needed to replicate results from the paper, including experiments
-on the WorldStrat, OLI2MSI, PROBA-V, Sen2VENUS, and MuS2 datasets (along with our S2-NAIP dataset). 
+on the WorldStrat, OLI2MSI, PROBA-V, Sen2VENUS, and MuS2 datasets (along with our S2-NAIP dataset). Note that the paths to data will need
+to be updated to your local environment before running. 
 > The `main` branch will be more stable, with less commits and only a handful of example config files.
 
 [Satlas](https://satlas.allen.ai/) aims to provide open AI-generated geospatial data that is highly accurate, available globally, 
