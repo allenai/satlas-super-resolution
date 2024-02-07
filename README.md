@@ -62,6 +62,7 @@ Additional data includes:
 
 All of the above data (except for the full training set due to size) can be downloaded at this [link](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_2023-12-08.tar), or individual links are provided above for ease of downloading.
 
+##### HuggingFace
 The train_urban_set, split into many partitions, val_set, and test_set are available for [download on **HuggingFace**](https://huggingface.co/datasets/allenai/satlas-super-resolution/tree/main) as well.
 
 ### Model Weights
@@ -73,9 +74,9 @@ Varying number of input Sentinel-2 images (just RGB bands):
 | ------------ | ------------ | ------------ |
 | 1 | [1-S2-images](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/esrgan_1S2.pth) | [esrgan_baseline_1S2.yml](https://github.com/allenai/satlas-super-resolution/blob/experiments/ssr/options/experiments/esrgan_baseline_1S2.yml) |
 | 2 | [2-S2-images](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/esrgan_2S2.pth) | [esrgan_baseline_2S2.yml](https://github.com/allenai/satlas-super-resolution/blob/experiments/ssr/options/experiments/esrgan_baseline_2S2.yml) |
-| 4 | [4-S2-images](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/esrgan_4S2.pth) | [esrgan_baseline_4S2.yml]((https://github.com/allenai/satlas-super-resolution/blob/experiments/ssr/options/experiments/esrgan_baseline_4S2.yml) |
-| 8 | [8-S2-images](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/esrgan_8S2.pth) | [esrgan_baseline.yml]((https://github.com/allenai/satlas-super-resolution/blob/experiments/ssr/options/experiments/esrgan_baseline.yml) |
-| 16 | [16-S2-images](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/esrgan_16S2.pth) | [esrgan_baseline_16S2.yml]((https://github.com/allenai/satlas-super-resolution/blob/experiments/ssr/options/experiments/esrgan_baseline_16S2.yml) |
+| 4 | [4-S2-images](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/esrgan_4S2.pth) | [esrgan_baseline_4S2.yml](https://github.com/allenai/satlas-super-resolution/blob/experiments/ssr/options/experiments/esrgan_baseline_4S2.yml) |
+| 8 | [8-S2-images](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/esrgan_8S2.pth) | [esrgan_baseline.yml](https://github.com/allenai/satlas-super-resolution/blob/experiments/ssr/options/experiments/esrgan_baseline.yml) |
+| 16 | [16-S2-images](https://pub-25c498004d1e4d4c8da69b2c05676836.r2.dev/esrgan_16S2.pth) | [esrgan_baseline_16S2.yml](https://github.com/allenai/satlas-super-resolution/blob/experiments/ssr/options/experiments/esrgan_baseline_16S2.yml) |
 
 Different Sentinel-2 bands used as input (8 input images):
 | Bands | Weights | Config |
