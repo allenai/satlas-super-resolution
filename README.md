@@ -2,7 +2,8 @@
 
 > [!NOTE] 
 > This `experiments` branch will ultimately contain all config files needed to replicate results from the paper, including experiments
-on the WorldStrat, OLI2MSI, PROBA-V, Sen2VENUS, and MuS2 datasets (along with our S2-NAIP dataset). 
+on the WorldStrat, OLI2MSI, PROBA-V, Sen2VENUS, and MuS2 datasets (along with our S2-NAIP dataset). Note that the paths to data will need
+to be updated to your local environment before running. 
 > The `main` branch will be more stable, with less commits and only a handful of example config files.
 
 [Satlas](https://satlas.allen.ai/) aims to provide open AI-generated geospatial data that is highly accurate, available globally, 
@@ -23,6 +24,17 @@ Zooming In: Advancing Super-Resolution for Remote Sensing](https://arxiv.org/pdf
 
 This repository contains the training and inference code for the AI-generated Super-Resolution data found at 
 https://satlas.allen.ai/, as well as code, data, and model weights corresponding to the paper.
+
+The experiments branch contains config files for experiments from the paper, while the main branch is limited to showcasing the main features.
+
+## Installation
+Initialize conda:
+```
+conda create --name ssr python==3.9
+conda activate ssr
+pip install -r requirements.txt
+conda install gdal
+```
 
 ## Download
 

@@ -20,14 +20,14 @@ datasets:
     type: WorldStratDataset
 
     # Paths to Sentinel-2 and HR imagery.
-    lr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
-    hr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
-    splits_csv: /data/piperw/data/worldstrat/dataset/stratified_train_val_test_split.csv
+    lr_path: /data/piperw/data/worldstrat/lr_dataset/
+    hr_path: /data/piperw/data/worldstrat/hr_dataset/
+    splits_csv: /data/piperw/data/worldstrat/stratified_train_val_test_split.csv
 
     use_shuffle: True  # shuffle MUST be False if using tile_weights
 
     num_worker_per_gpu: 8
-    batch_size_per_gpu: 2
+    batch_size_per_gpu: 8
 
     n_s2_images: 8
 
@@ -39,9 +39,9 @@ datasets:
      type: WorldStratDataset
 
      # Paths to Sentinel-2 and HR imagery.
-     lr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
-     hr_path: /data/piperw/data/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
-     splits_csv: /data/piperw/data/worldstrat/dataset/stratified_train_val_test_split.csv
+     lr_path: /data/piperw/data/worldstrat/lr_dataset/
+     hr_path: /data/piperw/data/worldstrat/hr_dataset/
+     splits_csv: /data/piperw/data/worldstrat/stratified_train_val_test_split.csv
 
      use_shuffle: False
 
@@ -68,10 +68,10 @@ network_d:
 # Load in existing weights to the generator and discriminator.
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: weights/satlas32_rrdbnet_last.pth
+  #pretrain_network_g: experiments/sample_net_g.pth
   param_key_g: params
-  strict_load_g: false
-  #pretrain_network_d:
+  strict_load_g: true
+  #pretrain_network_d: experiments/sample_net_d.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~

@@ -61,9 +61,9 @@ network_g:
   sr_kernel_size: 1
 
 # Load in existing weights to the generator and discriminator.
-# Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
+# Uncomment pretrain_network_g and/or pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: experiments/models/sample_net_g.pth
+  #pretrain_network_g: experiments/sample_net_g.pth
   param_key_g: params
   strict_load_g: false
   resume_state: ~

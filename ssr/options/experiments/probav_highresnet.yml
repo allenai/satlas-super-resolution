@@ -55,14 +55,14 @@ network_g:
   sr_kernel_size: 1
 
 # Load in existing weights to the generator and discriminator
-# Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
+# Uncomment pretrain_network_g and/or pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: experiments/sen2venus_esrgan_first/models/net_g_55000.pth
+  #pretrain_network_g: experiments/sample_net_g.pth
   param_key_g: params_ema
   strict_load_g: false
   resume_state: ~
 
-  experiments_root: /results/experiments/
+  #experiments_root: /results/experiments/
 
 # Training Settings
 train:
@@ -105,6 +105,30 @@ val:
        type: calculate_ssim
        crop_border: 4
        test_y_channel: false
+
+# Testing Settings
+test:
+  save_img: True
+
+  metrics:
+     psnr:
+       type: calculate_psnr
+       crop_border: 4
+       test_y_channel: false
+     ssim:
+       type: calculate_ssim
+       crop_border: 4
+       test_y_channel: false
+     cpsnr:
+       type: calculate_cpsnr
+       crop_border: 4
+       test_y_channel: false
+     lpips:
+       type: calculate_lpips
+       lpips_model: vgg
+     clipscore:
+       type: calculate_clipscore
+       clip_model: clipa-ViT-bigG-14  # see ssr/metrics/clipscore.py for currently supported models
 
 # Logging Settings
 logger:
