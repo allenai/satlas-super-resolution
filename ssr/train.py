@@ -92,6 +92,11 @@ def train_pipeline(root_path):
         start_epoch = 0
         current_iter = 0
 
+    # TEMPORARY CODE: freeze early discriminator layers during finetuning of GAN
+    for i, param in enumerate(model.net_d.parameters()):
+        if i < 6:  # Adjust this condition based on which layers you want to freeze
+            param.requires_grad = False
+
     # create message logger (formatted outputs)
     msg_logger = MessageLogger(opt, current_iter, tb_logger)
 
