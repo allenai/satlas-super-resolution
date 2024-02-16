@@ -307,6 +307,15 @@ class SSRESRGANModel(SRGANModel):
             if 'gt' in visuals:
                 gt_img = tensor2img([visuals['gt']])
                 metric_data['img2'] = gt_img
+
+                if save_img:
+                    if self.opt['is_train']:
+                        save_img_path = os.path.join(self.opt['path']['visualization'], img_name,
+                                             f'{img_name}_{current_iter}_gt.png')
+                    else:
+                        save_img_path = os.path.join(self.opt['path']['visualization'], dataset_name,
+                                                 f'{img_name}_{self.opt["name"]}_gt.png')
+                    imwrite(gt_img, save_img_path)
                 del self.gt
 
             # tentative for out of GPU memory
