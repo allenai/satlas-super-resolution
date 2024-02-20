@@ -112,6 +112,21 @@ In each set, there is a `sentinel2` folder containing these time series in the f
 tile refers to its location in a 2^17 x 2^17 Web-Mercator grid (ex. 12345_67890) and band refers to the Sentinel-2 bands 
 (tci, b01, b05, b06, b07, b08, b09, b10, b11, b12).
 
+## How to Process Raw Sentinel-2 Data
+For each image, use the TCI.jp2 file and use the following code to process it in the same way as the S2-NAIP dataset:
+
+```
+import rasterio
+
+tci_jp2_path = 'path/to/TCI.jp2'
+with rasterio.open(tci_jp2_path) as src:
+    img_rep, meta_rep = reproject_image(
+        img, meta, rasterio.crs.CRS.from_epsg(3857), resolution=(9.555, 9.555), resampling=rasterio.warp.Resampling.bilinear)
+
+with rasterio.open(tci_jp2_path.replace('.jp2', '_rep.jp2', 'w', **meta_rep) as dst:
+    dst.write(img_rep)
+```
+
 ## Model
 In the paper, we experiment with SRCNN, HighResNet, SR3, and ESRGAN. For a good balance of output quality and inference speed, we 
 use the ESRGAN model for generating global super-resolution outputs.
