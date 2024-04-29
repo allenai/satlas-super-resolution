@@ -188,7 +188,7 @@ class S2NAIPDataset(data.Dataset):
                         s2_img = torch.zeros(img_size, dtype=torch.uint8)
                     else:
                         s2_img = torchvision.io.read_image(s2_path)
-                        s2_img = torch.reshape(s2_img, (-1, s2_img.shape[0], 32, 32))
+                        s2_img = torch.reshape(s2_img, (s2_img.shape[0], -1, 32, 32)).permute(1,0,2,3)
 
                     if i == 0:
                         s2_tensor = s2_img
