@@ -17,7 +17,7 @@ feed_disc_lr: True
 datasets:
   train:
     name: train
-    type: SSRDataset
+    type: S2NAIPDataset
 
     sentinel2_path: super_resolution_2023-12-08/train_urban_set/sentinel2
     naip_path: super_resolution_2023-12-08/train_urban_set/naip
@@ -36,7 +36,7 @@ datasets:
 
   val:
      name: validation
-     type: SSRDataset
+     type: S2NAIPDataset
 
      sentinel2_path: super_resolution_2023-12-08/small_val_set/sentinel2
      naip_path: super_resolution_2023-12-08/small_val_set/naip
