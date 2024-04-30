@@ -27,7 +27,7 @@ datasets:
     use_shuffle: False  # shuffle must be false if using tile_weights
 
     num_worker_per_gpu: 32
-    batch_size_per_gpu: 64
+    batch_size_per_gpu: 128
 
     n_s2_images: 4
 
@@ -153,8 +153,8 @@ train:
 
 # Validation Settings
 val:
-   val_freq: !!float 5e5
-   save_img: True
+   val_freq: !!float 5e6
+   save_img: False
 
    metrics:
      psnr:
@@ -196,7 +196,7 @@ logger:
   save_checkpoint_freq: !!float 5e3 
   use_tb_logger: true
   wandb:
-    project: multisat
+    project: satlas-super-res
     resume_id: ~
 
 # Dist Training Settings
