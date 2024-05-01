@@ -90,9 +90,14 @@ class S2NAIPDataset(data.Dataset):
             osm_obj_data = json.load(open(self.osm_chips_to_masks))
             print("Loaded osm_chip_to_masks.json with ", len(osm_obj_data), " entries.")
 
-        # Paths to Sentinel-2 and NAIP imagery.
+        # Paths to Sentinel-2 and NAIP imagery. Assert that at least the LR path is provided.
         self.s2_path = opt['sentinel2_path']
-        self.naip_path = opt['naip_path']
+        self.naip_path = opt['naip_path'] if 'naip_path' in opt else None
+        if True:  # BEAKER HACK
+            self.s2_path = self.s2_path.replace('/data/piperw/data/', '/net/nfs.cirrascale/prior/piperw/')
+            self.naip_path = self.naip_path.replace('/data/piperw/data/', '/net/nfs.cirrascale/prior/piperw/')
+
+        print("Trying to retrieve data from ...", self.s2_path, " and ", self.naip_path)
         if not (os.path.exists(self.s2_path) and os.path.exists(self.naip_path)):
             raise Exception("Please make sure the paths to the data directories are correct.")
 
