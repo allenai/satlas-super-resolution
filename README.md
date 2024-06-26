@@ -219,5 +219,19 @@ Thanks to these codebases for foundational Super-Resolution code and inspiration
 
 [WorldStrat](https://github.com/worldstrat/worldstrat/tree/main)
 
+## Citation
+If you find this work useful, please consider citing our work:
+```
+@misc{satlassuperres,
+      title={Zooming Out on Zooming In: Advancing Super-Resolution for Remote Sensing}, 
+      author={Piper Wolters and Favyen Bastani and Aniruddha Kembhavi},
+      year={2023},
+      eprint={2311.18082},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2311.18082}, 
+}
+```
+
 ## Contact
 If you have any questions, please email `piperw@allenai.org` or [open an issue](https://github.com/allenai/satlas-super-resolution/issues/new).
