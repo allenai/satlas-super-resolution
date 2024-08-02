@@ -1,6 +1,6 @@
 basicsr==1.4.2
 lpips
-numpy
+numpy==1.26.4
 scikit-image
 Pillow
 opencv_python
