@@ -113,14 +113,15 @@ tile refers to its location in a 2^17 x 2^17 Web-Mercator grid (ex. 12345_67890)
 (tci, b01, b05, b06, b07, b08, b09, b10, b11, b12).
 
 ## How to Process Raw Sentinel-2 Data
-For each image, use the TCI.jp2 file and use the following code to process it in the same way as the S2-NAIP dataset:
+For each image, use the TCI.jp2 file and use the following pseudo-code to process it in the same way as the S2-NAIP dataset:
 
 ```
 import rasterio
+from rasterio.warp import reproject
 
 tci_jp2_path = 'path/to/TCI.jp2'
 with rasterio.open(tci_jp2_path) as src:
-    img_rep, meta_rep = reproject_image(
+    img_rep, meta_rep = reproject(
         img, meta, rasterio.crs.CRS.from_epsg(3857), resolution=(9.555, 9.555), resampling=rasterio.warp.Resampling.bilinear)
 
 with rasterio.open(tci_jp2_path.replace('.jp2', '_rep.jp2', 'w', **meta_rep) as dst:
