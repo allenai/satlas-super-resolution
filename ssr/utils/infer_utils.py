@@ -14,7 +14,7 @@ def format_s2naip_data(s2_data, n_s2_images, device):
     # and "bad" (partially black, invalid). Will use these to pick best collection of S2 images.
     goods, bads = [], []
     for i,ts in enumerate(s2_chunks):
-        if [0, 0, 0] in ts:
+        if np.any(np.all(ts == 0, axis=-1)):
             bads.append(i)
         else:
             goods.append(i)
